@@ -1,0 +1,234 @@
+----------------------------------------------------------------------------------------------------
+终端参数配置方法：
+1、在文本行的第1个字符写'>'，则之后的内容直接写入地址文件{*.h}中
+2、以:{地址名}+空格对齐+{'等号'长度}+TAB对齐+{'井号'缺省数据值},则自动生产地址配置到{*.h}中
+2、其它情况的行被忽略.
+    缺省数据值格式为：{数据类型}数据
+    {数据类型}为一个字符表示：
+
+                B表示1字节          B+123
+                W表示字（2字节）    W+123
+                S表示字符串         S+STRING
+                H表示16进制数       H+ABCD
+                M表示填充数据       M+AB
+                P表示图片文件       P+文件路径
+                F表示二进制文件     F+文件路径
+----------------------------------------------------------------------------------------------------
+		单个字节时，由于工具的原因，需要补位Check
+>////////////////////////////////////////////////////////////////////////////////
+>//自动生成文件，请勿直接修改
+>////////////////////////////////////////////////////////////////////////////////
+>//=============================================================================
+>//参数名称固定空间24+1，实际能正常显示的只有20Byte，后4字节异常（工具原因）----
+	Head_Name                     	=24	#S全国农行
+>//-----------------------------------------------------------------------------
+
+>// 服务器IP
+	ServerIp					=32   #S113.105.146.93
+	ServerPort					=8	  #80
+	Apn							=16   #CMNET  
+	sign_agentno				=32+1 #H0000000000000000
+	mch_id					    =32+1 #H0000000000000000
+	mch_key					    =32+1 #H0000000000000000
+	op_shop_id					=32+1 #H0000000000000000
+	op_user_id					=32+1 #H0000000000000000
+	customer_version			=1    #H00
+	WifiOpen					=1+1
+	CustVer						=32+1
+	password					=12+1
+	volume;
+	
+>//接入模式1
+	ConMode				=1        #B1
+	ConModeCheck			=1        #H00
+>//控制超时时限 输入超时60
+	InputTimeOut			=1        #B60
+	InputTimeOutCheck		=1        #H00
+>//交易超时时限 接收数据超时   65
+	TradeTimeOut			=1        #B65
+	TradeTimeOutCheck		=1        #H00
+>//终端管理员密码  	20060101
+	AdminPwd			=8        #S20060101
+>//固网支付操作密码 	888888
+	PayPwd				=6        #S888888
+>//缺省中心号码序号 	1
+	DefCenter			=1        #B1
+	DefCenterCheck         		=1        #H00
+>//密码最大长度 	6
+	PwdMaxLen			=1        #B6
+	PwdMaxLenCheck         		=1        #H00
+>//网关认证密钥 
+	KDC				=4        #H00000000
+>//应用功能版本号
+	AppVer				=4        #H00000000
+>//来电显示标志
+	CidFlag				=1        #S1
+	CidFlagCheck         		=1        #H00
+
+>//预拨外线号码3
+	PreDialNo			=12        #H000000000000000000000000
+>//拨号等待时限 10
+	DailDelay			=1        #B30
+	DailDelayCheck         		=1        #H00
+>//交易提示音开关 0
+	TradeSwitch			=1        #B0
+	TradeSwitcCheck         	=1        #H00
+>//音量大小
+	nVolume				=1        #B50
+	nVolumeCheck		=1        #H00
+
+
+>//屏幕对比度 50
+	LcdContrast			=1        #B50
+	LcdContrastCheck         	=1        #H00
+>//交换机时延 1
+	SwitchDelay			=1        #B1
+	SwitchDelayCheck         	=1        #H00
+>//终端通话屏蔽 0
+	TalkDisable			=1        #B0
+	TalkDisableCheck         	=1        #H00
+>//通讯信号强度 5
+	SignalLevel			=1        #B5
+	SignalLevelCheck         	=1        #H00
+>//保存已支付账单 1
+	SaveBill			=1        #B1
+	SaveBillCheck         		=1        #H00
+>//打印浓度 20
+	PrintDensity			=1        #B70
+	PrintDensityCheck         	=1        #H00
+
+
+>//打印开关 1
+	PrintON				=1        #B1
+	PrintONCheck         		=1        #H00
+>//条码阅读开关 0
+	NoGunSwitch			=1        #B0
+	NoGunSwitchCheck         	=1        #H00
+>//密码输入方式 0
+	PwdType				=1        #B0
+	PwdTypeCheck         		=1        #H00
+>//按键音开关 0
+	KeySwitch			=1        #B0
+	KeySwitchCheck         		=1        #H00
+>//中心号码选择 0
+	CentDialMode			=1        #B0
+	CentDialModeCheck         	=1        #H00
+>//来电报号0不报 
+	SpeakTelNo			=1        #B0
+	SpeakTelNoCheck         	=1        #H00
+>//拨出信息中心号码
+	CallCentDialNo			=17       #S
+>//接收信息中心号码
+	IncomeCentDialNo		=17       #S
+
+>//预拨外线号码
+	PreIPDialNo			=12       #S17909
+
+
+>//FSK VIP 标志 0
+	FskVip				=1        #B0
+	FskVipCheck         		=1        #H00
+>//来电更新时间 0
+	IncomeUpdateTime		=1        #B0
+	IncomeUpdateTimeCheck		=1        #H00
+>//背光时间 0
+	BackLight			=1        #B30	
+	BackLightCheck			=1        #H00
+>//闪断时间 0
+	FlashTime			=1        #B0
+	FlashTimeCheck			=1        #H00	
+>//是否mute 0
+	mute				=1        #B0
+	muteCheck         		=1        #H00	
+>//dtmf 电平 0
+	Dtmf_Level			=1        #B0	
+	Dtmf_LevelCheck         	=1        #H00	
+		
+>//客服显示 
+	CustoServiInfo			=32       #S正在呼叫客户服务中心
+>//客服电话 
+	CustoServiceDialNo		=16       #S95599		
+>//ctsi连接超时设置
+	FskOverTime			=1        #B0
+	FskOverTimeCheck         	=1        #H00	
+>//快捷键绑定菜单
+	FuncKeyMenuTrade		=3        #S000
+
+>//IC卡降级控制(0能降级)--深圳行要求有降级功能（所有为0），其它非0
+	IcNoRelegation			=1        #B0
+	IcNoRelegationCheck         	=1        #H00
+>//ACK等待时间
+	AckWaitTime			=1        #B3
+	AckWaitTimeCheck         	=1        #H00
+>//来电制式选择
+	incomemode			=1        #B0
+	incomemodeCheck         	=1        #H00
+>//通信方式
+	CommMode			=1        #S1
+	CommModeCheck         		=1        #H00
+
+>//接入IP		
+	ServerIp			=50       #S10.12.40.40
+>//接入端口		
+	ServerPort			=6        #S3071
+>//接入用户名		
+	GprsUserName			=65	#Sgdtest1
+>//接入密码		
+	GprsPassword			=65	#Sgd#*12345678	
+>//接入点		
+	GprsApn				=50	#SGDABC.SJCS.GDAPN	
+>//电信呼叫号码		
+	CallNumber			=20	#S
+
+>//TPDU信---贵州:6000410000 ,广东:6000220000,其它:6000210000
+	Tpdu				=5	#H6000220000
+>//滚动条缺省信息		
+	ScroMsg				=200	#S欢迎使用农行智付通业务
+>//外部认证密钥		
+	QualifyMainKey			=32	#S
+>//密钥索引		
+	PsamKdcIndex			=2	#S
+>//卡片状态		
+	PsamSta				=1	#S
+	PsamStaCheck         		=1      #H00
+
+>//农总行PC下载通讯密钥(Ksort					=1Kindex					=1Klen					=1Kdata					=16KMAC					=4
+	PTK_PC				=24	#H000010000102030405060708090A0B0C0D0E0F00000000	
+
+>//长连接使能		
+	OnLineEn			=1	#B0
+	OnLineEnCheck         		=1        #H00			
+	
+>//------------------MODEM参数设置----------------
+>//信号发送强度	
+	MsignalLevel			=1	#H05
+	MsignalLevelCheck         	=1        #H00	
+>//DTMF拨号时间		
+	Mdialtime			=1	#H64
+	MdialtimeCheck         		=1        #H00	
+>//检测拨号音时间单位10ms		
+	Mchkdialtime			=1	#H8C
+	MchkdialCheck         		=1        #H00	
+>//检测应答音时间单位10ms	
+	Mchkacktime			=1	#H14
+	MchkacktimeCheck         	=1        #H00	
+>//AT命令串		
+	Matcmd				=64	#S	
+
+>//强制延时,默认为关	
+	CheckDialSwitch			=1	#B0
+	CheckDialSwitchCheck         	=1      #H00	
+>//是否添加P,默认为关	
+	CheckAddDialP			=1	#B0
+	CheckAddDialPCheck         	=1        #H00
+
+>//========================校验参数（格式固定不变3+16+8）=============================			
+>//结束标记	
+	CheckEnd			=3	#SEND			
+>//参数标记（）	
+	FLAG_NAME	 	=6	#KS8312
+>//参数版本日期	
+	VER_DATE			=8	#S20190301
+
+		
+

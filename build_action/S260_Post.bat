@@ -1,0 +1,1 @@
+".\tools\add bin file header\AddHeaderToBinFile.exe" ".\app_proj\S260\Exe\app_S260.bin" AP 0071 2

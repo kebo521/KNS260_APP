@@ -1,0 +1,5 @@
+编辑：par.txt文件，保证内容参数 TERM_PAR 结构相同。
+由于 PrepKS68.exe 生成的参数长度限制，所有要增加补位参数。
+
+
+直接运行“TermPar.cmd”生成 TermPar.ksp ，并将TermPar.ksp参数文件考到下载包，就可以同主程序一起下载到终端。
