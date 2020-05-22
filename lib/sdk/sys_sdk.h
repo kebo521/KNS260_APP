@@ -33,6 +33,7 @@ typedef struct
 	int (*Init)(char*);	//
 	int (*Exit)(int);	//(int recode)
 	int (*GetTickCount)(void);		// return current ms
+	u8 (*IsTimeExpired)(int);		// EndtimeMs
 	void (*Sleep)(unsigned int);	//sleep Ms
 	void (*GetTime)(ST_TIME*);	//(ST_TIME *systime)
 	int (*SetTime)(ST_TIME*);
@@ -51,14 +52,14 @@ typedef struct
 	int (*kernelRunFunc)(R_PFUNC);		//(R_PFUNC pRfunc)
 }API_SDK_Def;
 
-extern const API_SDK_Def* pSysFun;
+extern API_SDK_Def	api_SysFun;;
 
 
-#define LogSet(t)						pSysFun->logSet(t)	
-#define LOG(t,...)						pSysFun->Log(t, ## __VA_ARGS__)
-#define TRACE(...)						pSysFun->Log(LOG_INFO, ## __VA_ARGS__)
-#define LOG_HEX(logT,msg,pBuff,Len)		pSysFun->logHex(logT,msg,pBuff,Len)
-#define TRACE_HEX(msg,pBuff,Len)		pSysFun->logHex(LOG_INFO,msg,pBuff,Len)
+#define LogSet(t)						api_SysFun.logSet(t)	
+#define LOG(t,...)						api_SysFun.Log(t, ## __VA_ARGS__)
+#define TRACE(...)						api_SysFun.Log(LOG_INFO, ## __VA_ARGS__)
+#define LOG_HEX(logT,msg,pBuff,Len)		api_SysFun.logHex(logT,msg,pBuff,Len)
+#define TRACE_HEX(msg,pBuff,Len)		api_SysFun.logHex(LOG_INFO,msg,pBuff,Len)
 
 
 #endif

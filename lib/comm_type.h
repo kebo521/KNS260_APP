@@ -75,7 +75,7 @@ typedef unsigned int			u32;	//!< Define u32
 #endif /*bool*/
 
 
-typedef int (*CHECK_DATA_FULL)(u8 *,int); 
+typedef int (*CHECK_DATA_FULL)(char *,int); 
 typedef 	void (*PFUNC)(void);				//空函数指针类型(Guozu add)
 typedef 	int (*R_PFUNC)(void); 
 

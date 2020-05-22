@@ -261,8 +261,8 @@ int APP_WIFI_SetKey(char *pTitle)
 	free(pShowItem);
 	//--------------------------------------------------------------------------------------------
 	APP_ScreenSleep(FALSE);
-	APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,&APP_WIFI_ScanKey,"扫码连接");
-	APP_AddCurrentMenuOtherFun(MENU_OUT_FUN,&APP_WIFI_AutoRun,NULL);
+	APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,(void*)&APP_WIFI_ScanKey,"扫码连接");
+	APP_AddCurrentMenuOtherFun(MENU_OUT_FUN,(void*)&APP_WIFI_AutoRun,NULL);
 	//APP_AddCurrentMenuOtherFun(MENU_SHOW_AFT,NULL,STR_KEY_UPDOWT);
 	return ret;
 }

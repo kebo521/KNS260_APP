@@ -3,13 +3,13 @@
 extern "C" {
 #endif
 
-UI_DisplayTheme const UI_WftTheme=
+const UI_DisplayTheme UI_WftTheme=
 {
 	"press[0] next page",
 	"press[8] Prev page",
 	"page: [8]↑, [0]↓",
 	
-	L"E:\\bmp\\Small_f.bin",
+	"Small_f.clz",
 	14,
 	13,
 };
@@ -25,17 +25,21 @@ void TermParSetDefault(void)
 	API_strcpy(Term_Par.Apn,"CMNET");
 	API_strcpy(Term_Par.password, "888888");
 	Term_Par.volume = 7;
+	TRACE("test...3\r\n");
 
 	#ifdef HARD_WIFI
 	Term_Par.WifiOpen[0]=1;
 	#endif
 	API_strcpy(Term_Par.CustVer,  CustomerVersion);
+	TRACE("test...4\r\n");
 
 	// 主控默认设置为中文
-	pSdkFun->sdk->language(_LANG_ID_);
+	API_SetLanguage(_LANG_ID_);
+	TRACE("test...5\r\n");
 
 	// 清流水
 	ClearTradeRecord();
+	TRACE("test...6\r\n");
 }
 
 // 客户区域进入函数
@@ -151,7 +155,7 @@ int APP_QRMenu(char* title)
 	ret=APP_EditSum(title,'D',g_ColData.total_fee,30*1000);
 	if(ret <= 0) return ret;
 	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
-	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,"PayMeth.clz",NULL);
+	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"PayMeth.clz");
 	return 0;
 }
 
@@ -167,7 +171,7 @@ int APP_TermMenu(char* title)
 		STR_SET_USER_ID,						SetUserID,
 		#ifdef HARD_WIFI
 		WIFI_SWITCH,							APP_WIFI_EN,
-		WIFI_PASSu16,							APP_WIFI_SetKey,
+		WIFI_PASSWORD,							APP_WIFI_SetKey,
 		#endif
 		STR_DEVICE_INFORMATION,					SoftInfo,
 	};
@@ -201,7 +205,7 @@ int APP_TradeMainMenu(char* title)
 		ORDER_QUERY,			OrderQueryMenu,
 	};
 	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
-	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,"PayCont.clz",NULL);
+	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"PayCont.clz");
 	return 0;
 }
 
@@ -225,7 +229,7 @@ int PE_wifi_FunSet(char* title)
 	CMenuItemStru MenuStruPar[]=
 	{
 		WIFI_SWITCH,							APP_WIFI_EN,
-		WIFI_PASSu16,							APP_WIFI_SetKey,
+		WIFI_PASSWORD,							APP_WIFI_SetKey,
 	};
 	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);
 }	
@@ -239,7 +243,7 @@ int customer_MainMenu(char* title)
 		#ifdef DOMESTIC_BANK_VERION
 		STR_SET_VOLUME,							Terminal_SetVolume,
 		#endif
-		STR_SET_ADMIN_PASSu16,					SetRefundPwd,
+		STR_SET_ADMIN_PASSWORD,					SetRefundPwd,
 		STR_DEVICE_INFORMATION,					SoftInfo,
 	};
 	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);

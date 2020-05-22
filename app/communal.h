@@ -63,19 +63,16 @@ typedef void*		  	FILE;
 
 
 //---------定义通用函数所使用的接口----------------
-#define		malloc(size)	        LocalAlloc(0,size)			
-#define		free(p)					LocalFree(p)
-#define		realloc(p,size)			LocalReAlloc(p,size)
+#define		malloc(size)	        pSdkFun->app->malloc(size)			
+#define		free(p)					pSdkFun->app->free(p)
 
 #define		FreeNull(p) 			{free(p); p=NULL;}
 
 
 //=========定义语言=======================================
-//#define _LANG_ID_		(1)						//默热中文
-//#define DS(en,ch)		((_LANG_ID_==0)?(en):(ch))					//多语言定义
+#define _LANG_ID_		(1)						//默热中文
+#define DS(en,ch)		((_LANG_ID_==0)?(en):(ch))					//多语言定义
 //===========tls库定义接口=================================
-#include "app_main.h"
-
 
 #include "dataconv.h"
 
@@ -96,7 +93,9 @@ typedef void*		  	FILE;
 
 
 #include "FactoryMenu.h"
-#include "App_main.h"
+
+
+#include "app_main.h"
 
 
 #include "TermParfile.h"

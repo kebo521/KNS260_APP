@@ -210,7 +210,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-	extern void md5( const unsigned char *input, u32 ilen, unsigned char* pOutput);	//临时用
+	extern void md5(unsigned char *input, u32 ilen, unsigned char* pOutput);	//临时用
 
 	extern int APP_base64_encode(unsigned char *dst, size_t dlen, size_t *olen,const unsigned char *src, size_t slen);
 

@@ -250,7 +250,7 @@ int sha256_Sign_Check(sIdDataTable *pStart,const char* KeyName,char* KeyData)
 		{
 			*pGetStr='\0';
 			TRACE("Err HttpPosData:");
-			TRACE_Str(pSignBuff);
+			TRACE(pSignBuff);
 			TRACE_HEX("Md5Resultbuff",sha256Resultbuff,16);
 			TRACE_HEX("signBuff",signBuff,16);
 			ret=OPER_CRCERR;

@@ -1,4 +1,4 @@
-/**
+/*
  * File:   linux_fb.h
  * Author: Li XianJing <xianjimli@hotmail.com>
  * Brief:  linux_framebuffer

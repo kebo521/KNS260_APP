@@ -124,6 +124,7 @@ int  Enquiries(char* pTitle)
 		return APP_ShowTradeMsg(STR_NO_TRANSACTION_RECORD,3*1000);
 	}
 //	return APP_GUI_OpProcess("Transaction Record", Option_ShowItem, Option_RunItem, NULL);
+        return 0;
 }		
 
 int APP_ScanInput(char* pTitle,char* pFrontTextBuf,char* pAfterTextBuf,char* pInputDef,int InputMinLen,int InputMaxlen)	
@@ -203,9 +204,9 @@ int Terminal_SetVolume(char *pTitle)
 					TRACE("AudioSetVolume-[%d]\r\n",Ret);
 					if(Ret<0)
 					{
-						TRACE("AudioSetVolume-[%d][%x]\r\n",Ret,GetLastError());
+						TRACE("AudioSetVolume-[%d]\r\n",Ret);
 					}
-					Sleep(150);
+					OsSleep(150);
 					//APP_TTS_PlayText("ÒôÁ¿ÉèÎª%d",volume);
 					Term_Par.volume = volume;
 					TRACE("AudioSetVolume save [%d]\r\n", Term_Par.volume);
@@ -507,7 +508,7 @@ int ScanFPS_MerchantInfo(char *title)
 int PE_ParFacInit(char* title)
 {
 	char  key[16]={0};
-	if(APP_InputAbc(title,STR_ENTER_THE_AUTHENTICATION_PASSu16,  STR_PRESS_NUBER_KEYS_ENTER, key,6, 10)==0)
+	if(APP_InputAbc(title,STR_ENTER_THE_AUTHENTICATION_PASSWORD,  STR_PRESS_NUBER_KEYS_ENTER, key,6, 10)==0)
 	{
 		if(API_memcmp(key,"002197",6)==0)
 		{

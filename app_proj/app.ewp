@@ -168,7 +168,7 @@
         <debug>0</debug>
         <option>
           <name>CCDefines</name>
-          <state>LCD_RESOLUTION_320x240</state>
+          <state></state>
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -208,7 +208,7 @@
         </option>
         <option>
           <name>CCDiagSuppress</name>
-          <state>Pa050</state>
+          <state></state>
         </option>
         <option>
           <name>CCDiagRemark</name>
@@ -233,7 +233,7 @@
         </option>
         <option>
           <name>CCDebugInfo</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>IEndianMode</name>
@@ -297,13 +297,13 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
-          <state>$PROJ_DIR$\..\lib</state>
-          <state>$PROJ_DIR$\..\lib\sdk</state>
-          <state>$PROJ_DIR$\..\lib\gui</state>
-          <state>$PROJ_DIR$\..\lib\gfs</state>
-          <state>$PROJ_DIR$\..\lib\tls</state>
-          <state>$PROJ_DIR$\..\app</state>
           <state>$PROJ_DIR$\..\Customer</state>
+          <state>$PROJ_DIR$\..\app</state>
+          <state>$PROJ_DIR$\..\lib</state>
+          <state>$PROJ_DIR$\..\lib\gfs</state>
+          <state>$PROJ_DIR$\..\lib\gui</state>
+          <state>$PROJ_DIR$\..\lib\sdk</state>
+          <state>$PROJ_DIR$\..\lib\tls</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -328,7 +328,7 @@
         <option>
           <name>CCOptStrategy</name>
           <version>0</version>
-          <state>2</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCOptLevelSlave</name>
@@ -407,7 +407,7 @@
         <option>
           <name>CCOptStrategySlave</name>
           <version>0</version>
-          <state>2</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCGuardCalls</name>
@@ -629,7 +629,7 @@
       <archiveVersion>1</archiveVersion>
       <data>
         <prebuild></prebuild>
-        <postbuild>$PROJ_DIR$\..\build_action\S260_Post.bat</postbuild>
+        <postbuild></postbuild>
       </data>
     </settings>
     <settings>
@@ -717,7 +717,7 @@
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$PROJ_DIR$\..\src\startup\sdram.icf</state>
+          <state>$PROJ_DIR$\..\app_proj\settings\sdram.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
@@ -777,7 +777,7 @@
         </option>
         <option>
           <name>IlinkProgramEntryLabel</name>
-          <state>resetHandler</state>
+          <state>__startup_appmain</state>
         </option>
         <option>
           <name>DoFill</name>
@@ -939,7 +939,7 @@
         </option>
         <option>
           <name>IarchiveOutput</name>
-          <state>F:\&#x8BC1;&#x901A;APP\app_proj\S260\Exe\app.a</state>
+          <state>E:\sbr\szztAPP\app_proj\S260\Exe\app.a</state>
         </option>
       </data>
     </settings>
@@ -1005,9 +1005,6 @@
   </group>
   <group>
     <name>lib</name>
-    <file>
-      <name>$PROJ_DIR$\..\lib\app.a</name>
-    </file>
   </group>
 </project>
 

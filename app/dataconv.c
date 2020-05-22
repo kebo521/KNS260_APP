@@ -485,10 +485,10 @@ char* tRChar(const char* pfPath, const char cDim)
     {
         if (pfPath[loop] == cDim)
         {
-            return &(pfPath[loop+1]);
+            return (char*)&(pfPath[loop+1]);
         }
     }
-    return pfPath;
+    return (char*)pfPath;
 }
 
 u8 Conv_HttpGetName(char* pOutName,const char* pInAddre)
@@ -730,125 +730,6 @@ sIdDataTable* Conv_SingleJSON_GetMsg(char *pIndata,char* pEnd)
 	return pIdData;
 }
 
-/*
-sIdDataTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
-{
-	sIdDataTable *pIdData;
-	sIdDataItem *pItem=NULL;
-	char *pOffset;
-	u8 cycle=0,ItemIndex;
-	//--------计算参数总数--------
-	pOffset=pIndata;
-	while(pOffset < pEnd)
-	{
-		if(*pOffset == ':')
-			cycle++;
-		pOffset++;
-	}
-	if(cycle<1) return NULL;
-	//--------申请对应空间--------
-	pIdData=(sIdDataTable*)malloc(sizeof(sIdDataTable)+(sizeof(sIdDataItem)*cycle));
-	pIdData->Total = cycle;
-	//--------记录数据--------
-	cycle=0;
-	ItemIndex=0;
-	while(pIndata < pEnd)
-	{
-		if(*pIndata == '\"')
-		{
-			if(cycle==0)	//0 strar
-			{
-				pItem=&pIdData->Item[ItemIndex++];
-				cycle++;	// 1-> IDStar
-			}
-			else if(cycle==2) // 2-> End ID
-			{
-				*pIndata='\0';	//增加结束符号
-				cycle++; // 3-> :
-			}
-			else if(cycle==4)	// 4->Data Strat
-			{
-				cycle++;		//5 Strat Data
-			}
-			else if(cycle==5) // 3-> Data NULL
-			{
-				pItem->pData=pIndata;
-				cycle++;  // 6-> End IDEnd
-			}
-			//-----------------------------
-			if(cycle==6) // 6-> End IDEnd
-			{
-				*pIndata='\0';	//增加结束符号
-				cycle++;	// 7-> Next
-			}
-		}
-		else if(*pIndata == ':')
-		{
-			if(cycle==3) 
-				cycle++; // 4-> Data:
-		}
-		else if(*pIndata == '{')
-		{
-			if(cycle==4) 
-			{
-				int cont=1;
-				pIndata++;
-				pOffset=pIndata;
-				while(pOffset < pEnd)
-				{
-					if(*pOffset == '{')
-						cont++;
-					else if(*pOffset == '}')
-						cont--;
-					if(cont==0) break;
-				}
-				if(cont==0){
-					pItem->pData=Conv_JSON_GetMsg(pIndata,pOffset);
-					pItem->dType=ITEM_STRUCT;
-					pIndata=pOffset;
-					while(pIndata < pEnd)
-					{
-						if((u8)*pIndata > ' ')
-							break;
-						pIndata++;
-					}
-				}
-				cycle=7;		//5 End ,
-			}
-		}
-		else if(*pIndata == ',')
-		{
-			if(cycle==7)
-			{
-				*pIndata='\0';	
-				cycle=0;  //0 strar
-			}
-		}
-		else
-		{
-			if(cycle==1)	// 1-> IDStar
-			{
-				pItem->pID=pIndata;
-				cycle++;	// 2-> End IDStar
-			}
-			else if(cycle==4)	// 3-> Data Int
-			{
-				pItem->pData=pIndata;
-				pItem->dType=ITEM_NULL;
-				cycle=7;		//5 End ,
-			}
-			else if(cycle==5) // 3-> Data Str
-			{
-				pItem->pData=pIndata;
-				pItem->dType=ITEM_STRING;
-				cycle++;	// 6-> End Data
-			}
-		}
-		pIndata++;
-	}
-	return pIdData;
-}
-*/
 
 //=======================依据pID字符串进行小端排列=================================================
 void ArrayStringIdGroup(sIdDataTable *pStart)
@@ -909,7 +790,7 @@ int Conv_Sign_Check(sIdDataTable *pStart,const char* KeyName,char* KeyData)
 		{
 			*pGetStr='\0';
 			TRACE("Err HttpPosData:");
-			TRACE_Str(pMd5Data);
+			TRACE(pMd5Data);
 			TRACE_HEX("Md5Resultbuff",Md5Resultbuff,16);
 			TRACE_HEX("signBuff",signBuff,16);
 			ret=OPER_CRCERR;
@@ -953,255 +834,7 @@ char* Conv_GetParFindID(sIdDataTable *pStart,char* pPostID)
 //--    用完后需要Conv_JSON_free释放空间
 dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 {
-	dfJsonTable *pIdData;
-	dfJsonItem *pItem=NULL;
-	u16 		colonCount,parenCount;
-	u16			ItemIndex,cycle;
-	//------------找到起点-----------------------
-	parenCount=0;
-	while(pIndata < pEnd)
-	{
-		if(*pIndata++ == '{') 
-		{
-			parenCount++;
-			break;
-		}
-	}
-	if(parenCount!=1) return NULL;
-	//------------找到终点-----------------------
-	colonCount=0;
-	{
-		char *pE=pEnd;
-		pEnd=pIndata;
-		while(pEnd < pE)
-		{
-			if(*pEnd == '{')
-				parenCount++;
-			else if(*pEnd == '}')
-			{
-				if(--parenCount == 0) break;
-			}
-			else if(*pEnd == ':')
-			{
-				if(parenCount == 1)	//-计算第一层参数总数-
-					colonCount++;
-			}
-			pEnd++;
-		}
-	}
-	if(parenCount)
-	{
-		TRACE("JSON_GetMsg ERR The {} number does not match[%d]\r\n",parenCount);
-		return NULL;
-	}
-	if(colonCount<1)
-	{
-		TRACE("GetMsg  The : number Err[%d]\r\n",colonCount);
-		return NULL;
-	}
-	*pEnd = '\0';
-	//-----------申请对应空间----------------------
-	pIdData=(dfJsonTable*)malloc(sizeof(dfJsonTable)+(sizeof(dfJsonItem)*colonCount)); //+1 = +'\0';
-	pIdData->pNext= NULL;
-	pIdData->sLen = pEnd-pIndata;
-	cycle=0;
-	ItemIndex=0;
-	while(pIndata < pEnd)
-	{
-		if(*pIndata == '\"')
-		{
-			if(cycle==0)	//0 strar
-			{
-				pItem=&pIdData->Item[ItemIndex++];
-				cycle++;	// 1-> IDStar
-			}
-			else if(cycle==2) // 2-> End ID
-			{
-				*pIndata='\0';	//增加结束符号
-				cycle++; // 3-> :
-			}
-			else if(cycle==4)	// 4->Data Strat
-			{
-				cycle++;		//5 Strat Data
-			}
-			else if(cycle==5)
-			{//为5时空数据""
-				pItem->dType= ITEM_STRING;
-				pItem->vaNum= 0;
-				pItem->pValue=pIndata;
-				*pIndata='\0';	//增加结束符号
-				cycle=7;	// 7-> Next
-			}
-			else if(cycle==6) // 6-> End IDEnd
-			{
-				*pIndata='\0';	//增加结束符号
-				cycle=7;	// 7-> Next
-			}
-		}
-		else if(*pIndata == '[')
-		{
-			char *pKuoEnd;
-			u16 dkjs,dkNum;
-			pKuoEnd = ++pIndata;
-			parenCount=1;
-			dkjs=0;dkNum=0;
-			while(pKuoEnd < pEnd)
-			{
-				if(*pKuoEnd == '[')
-					parenCount++;
-				else if(*pKuoEnd == ']')
-				{
-					parenCount--;
-					if(parenCount == 0) break;
-				}
-				else if(*pKuoEnd == '{')
-					dkjs++;
-				else if(*pKuoEnd == '}')
-				{
-					dkjs--;
-					if(dkjs == 0)
-						dkNum++;
-				}				
-				pKuoEnd++;
-			}
-			if(parenCount==0 && dkNum > 0)
-			{
-				dfJsonTable *pNext=NULL;
-				char *pS,*pE;
-				for(dkjs=0;dkjs<dkNum;dkjs++)
-				{
-					pS = NULL;
-					parenCount=0;
-					while(pIndata < pKuoEnd)
-					{
-						if(*pIndata == '{')
-						{
-							if(++parenCount == 1)
-								pS = pIndata;
-						}
-						else if(*pIndata == '}')
-						{
-							if(--parenCount == 0) break;
-						}
-						pIndata++;
-					}
-					pE = ++pIndata;
-					if(pS)
-					{
-						if(pNext==NULL)
-						{
-							pNext=Conv_JSON_GetMsg(pS,pE);
-							pItem->pValue=pNext;
-						}
-						else 
-						{
-							pNext->pNext=Conv_JSON_GetMsg(pS,pE);
-							pNext=pNext->pNext;
-						}
-					}
-				}
-				pItem->vaNum= dkNum;
-				pItem->dType= ITEM_STRUCT;
-			}
-			else
-			{
-				pItem->dType= ITEM_STRING;
-				pItem->pValue=pIndata;
-				*pKuoEnd = '\0';
-			}
-			pIndata=pKuoEnd;
-			pIndata++;
-			cycle=0;  //0 strar
-		}
-		else if(*pIndata == ':')
-		{
-			if(cycle==3) 
-				cycle++; // 4-> Data:
-		}
-		else if(*pIndata == ',')
-		{
-			if(cycle==7)
-			{
-				*pIndata='\0';	
-				cycle=0;  //0 strar
-			}
-		}
-		else if(*pIndata == '{')
-		{
-			if(cycle==4 || cycle==5)	//cycle==4 为:{} 模式   , cycle==5 为:"{}" 模式
-			{
-				char *p;
-				p=pIndata;
-				p++; 
-				parenCount=1;
-				colonCount=0;
-				while(p < pEnd)
-				{
-					if(*p == '{')
-						parenCount++;
-					else if(*p == '}')
-					{
-						if(--parenCount == 0) break;
-					}
-					else if(*p == ':')
-						colonCount++;
-					p++;
-				}
-				p++;
-				pItem->vaNum= 1;
-				if(parenCount==0)
-				{
-					if(colonCount>0)
-					{
-						pItem->dType= ITEM_STRUCT;
-						pItem->pValue=Conv_JSON_GetMsg(pIndata,p);
-					}
-					else
-					{
-						pItem->dType= ITEM_NULL;
-						pItem->pValue=pIndata;
-						*p = '\0';
-					}
-				}
-				else
-				{
-					TRACE("JSON_GetMsg Key[%s],Get Value ERR \r\n",pItem->pkey);
-					free(pIdData);
-					return NULL;
-				}
-				pIndata=p;
-				if(cycle==5)
-					pIndata++;
-				cycle=0;  //0 strar
-			}
-		}
-		else
-		{
-			if(cycle==1)	// 1-> IDStar
-			{
-				pItem->pkey=pIndata;
-				cycle++;	// 2-> End IDStar
-			}
-			else if(cycle==4)	// 3-> Data Int 
-			{
-				if(*pIndata > ' ')	//过滤空格或换行符等
-				{
-					pItem->dType= ITEM_INT;
-					pItem->pValue=pIndata;
-					cycle=7;//5 End ,
-				}
-			}
-			else if(cycle==5) // 3-> Data Str
-			{
-				pItem->dType= ITEM_STRING;
-				pItem->pValue=pIndata;
-				cycle++;	// 6-> End Data
-			}
-		}
-		pIndata++;
-	}
-	pIdData->Total = ItemIndex;
-	return pIdData;
+	return (dfJsonTable*)pSdkFun->app->JsonLoad(pIndata,pEnd);
 }
 
 /*
@@ -1211,161 +844,66 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 */
 char* Conv_GetJsonValue(dfJsonTable *pStart,char* pKey,u8 *pType)
 {
-	char *src1,*src2;
-	u16 i,Max;
-	if(pStart == NULL)
-	{
-		TRACE("Conv GetJsonStr[%s] pStart Err\r\n",pKey);
-		return NULL;
-	}
-	Max=pStart->Total;
-	for(i=0;i<Max;i++)
-	{
-		src1=pKey;
-		src2=pStart->Item[i].pkey;
-		while(*src2)
-		{
-			if(*src1 != *src2)
-				break;
-			src1++; src2++;
-		}
-		
-		if(*src2 == '\0')
-		{
-			if(*src1 == '\0')
-			{
-				if(pType) 
-				{
-					*pType= pStart->Item[i].dType;
-				}
-				else if(pStart->Item[i].dType == ITEM_STRUCT)
-				{
-					TRACE("GetJsonStr[%s] dtype is[%d],pType is NULL,not return\r\n",pKey,pStart->Item[i].dType);
-					return NULL;
-				}
-				return pStart->Item[i].pValue;
-			}
-			else if(*src1 == '/')	//处理第二级
-			{
-				if(pStart->Item[i].dType == ITEM_STRUCT)
-				{
-					return Conv_GetJsonValue((dfJsonTable *)pStart->Item[i].pValue,++src1,pType);
-				}
-				TRACE("GetJsonStr pKey[%s] '/' warning\r\n",pKey);
-				return pStart->Item[i].pValue;
-			}
-			else if(*src1 == '[')	//处理分级，
-			{//"abc/efg/hij[3]"
-				u16 index=0;
-				src1 ++;
-				while((*src1 >= '0') && (*src1 <= '9'))
-				{
-					index =index*10 + ((*src1)&0x0f);
-					src1++;
-				}
-				if(*src1++ != ']')
-				{
-					TRACE("GetJsonStr[%s] Format error,not return\r\n",pKey);
-					return NULL;
-				}
-				else
-				{
-					dfJsonTable *pArray=(dfJsonTable *)pStart->Item[i].pValue;
-					while(index--) pArray = pArray->pNext;
-					
-					if(pArray)
-					{
-						if(*src1 == '/')
-							return Conv_GetJsonValue(pArray,++src1,pType);
-						else if(pType) 
-						{
-							*pType= pStart->Item[i].dType;
-							return pArray;
-						}
-						return NULL;
-					}
-					return pArray;
-				}
-			}
-		}
-	}
-	TRACE("GetJsonStr[%s] Nofind\r\n",pKey);
-	return NULL;
+	return (char*)pSdkFun->app->JsonGetValue(pStart,pKey,pType);
 }
 
 
 void Conv_JSON_free(dfJsonTable *pTable)
 {
-	u16 i,max;
-	if(pTable==NULL) return ;
-	max=pTable->Total;
-	for(i=0;i<max;i++)
-	{
-		if(pTable->Item[i].dType == ITEM_STRUCT)
-		{
-			dfJsonTable *pCurr,*pNext;
-			pCurr=(dfJsonTable*)pTable->Item[i].pValue;
-			while(pCurr)
-			{
-				pNext = pCurr->pNext;
-				Conv_JSON_free(pCurr);
-				pCurr=pNext;
-			}
-		}
-		
-	}
-	free(pTable);
+	pSdkFun->app->JsonDestroy(pTable);
 }
 //==========================================================================================
 void GetSysDateTime(char *pOutDateTime,const char *spFormat)
 {
-	SYSTEMTIME	systemTime;
-	GetLocalTime(&systemTime);	
+	ST_TIME	dtime;
+	OsGetTime(&dtime);
 	API_sprintf(pOutDateTime,spFormat,
-			systemTime.wYear,systemTime.wMonth,systemTime.wDay,
-			systemTime.wHour,systemTime.wMinute,systemTime.wSecond); 
+			dtime.Year,dtime.Month,dtime.Day,
+			dtime.Hour,dtime.Minute,dtime.Second); 
 
 }
 
 //---输入格式 2018 03 08 17 03 43---每个元素间隔不限----------------
 void SetSysDateTime(char *pInDateTime)
 {
-	SYSTEMTIME dtime,inTime;
+	ST_TIME dtime,inTime;
 	char sBuff[8];
 	//2018 03 08 17 03 43
 	API_memcpy(sBuff,pInDateTime,4); sBuff[4]='\0';
-	inTime.wYear =API_atoi(sBuff);
+	inTime.Year =API_atoi(sBuff);
 
 	API_memcpy(sBuff,pInDateTime+5,2); sBuff[2]='\0';
-	inTime.wMonth=API_atoi(sBuff);
+	inTime.Month=API_atoi(sBuff);
 
 	API_memcpy(sBuff,pInDateTime+8,2); //sBuff[2]='\0';
-	inTime.wDay =API_atoi(sBuff);
+	inTime.Day =API_atoi(sBuff);
 
 	API_memcpy(sBuff,pInDateTime+11,2); //sBuff[2]='\0';
-	inTime.wHour =API_atoi(sBuff);
+	inTime.Hour =API_atoi(sBuff);
 
 	API_memcpy(sBuff,pInDateTime+14,2); //sBuff[2]='\0';
-	inTime.wMinute=API_atoi(sBuff);
+	inTime.Minute=API_atoi(sBuff);
 	
-	GetLocalTime(&dtime);
-	if(dtime.wYear!=inTime.wYear || dtime.wMonth!=inTime.wMonth || dtime.wDay!=inTime.wDay \
-		|| dtime.wHour!=inTime.wHour || dtime.wMinute!=inTime.wMinute)
+	OsGetTime(&dtime);
+	if(dtime.Year!=inTime.Year || dtime.Month!=inTime.Month || dtime.Day!=inTime.Day \
+		|| dtime.Hour!=inTime.Hour || dtime.Minute!=inTime.Minute)
 	{
 		API_memcpy(sBuff,pInDateTime+17,2); //sBuff[19]='\0';
-		inTime.wSecond=API_atoi(sBuff); 
-		inTime.wMilliseconds=0;
-		SetLocalTime(&inTime); 
+		inTime.Second=API_atoi(sBuff); 
+		OsSetTime(&inTime);
 	}
 }
 
 
 void APP_GetRand(u8 *pOutRand,int RandLen)
 {
-	SYSTEMTIME  systemTime;
-	GetLocalTime(&systemTime);	  
-	srand_m(systemTime.wSecond);
-	while(RandLen--) pOutRand[RandLen]=rand_m();
+	int systemTime[2];
+	u8* pRand;
+	systemTime[1]=API_TimeCurrMS();
+	systemTime[0]= ~systemTime[1];
+	pRand = (u8*)systemTime;
+	Des_B1Dec(pRand,"app23key",1);
+	while(RandLen--) *pOutRand++ = *pRand++;
 }
 
 //===================DateTime to Timestamp=============================================
@@ -1477,29 +1015,13 @@ int Conv_TimestampToDate(u32 timestampIn,int timeZone,DATE_TIME *pTimeOut)
 
 //=====================================================================================================
 
-void* API_memcpy(void *dst, const void *src, int count)
-{
-	return memcpy_m(dst,src,count);
-}
-
-void* API_memset(void* dst, int value, int count)
-{
-	return memset_m(dst,value,count);
-}
-int API_memcmp(const void* src1, const void* src2, int count)
-{
-	return memcmp_m(src1, src2, count);
-}
 
 char* API_strcpy(char* dst, const char* src)
 {
-	return strcpy_m(dst,src);
+	return strcpy(dst,src);
 
 }
-int API_strlen(const char* src)
-{
-	return strlen_m(src);
-}
+
 
 int API_sprintf(char* str, const char* format, ...)
 {

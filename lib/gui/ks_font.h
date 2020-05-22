@@ -1,4 +1,4 @@
-/**
+/*
  * File:   linux_fb.h
  * Author: Li XianJing <xianjimli@hotmail.com>
  * Brief:  linux_framebuffer
@@ -31,7 +31,7 @@ typedef struct
 	
 	int (*InitFontLib)(char*);		//(char *pfile)
 	void (*DeInitFontLib)(void);	//
-	void (*SetFontColor)(A_RGB,u32);	//(u32 fgColor,u32 bgColor) RGB_CURR
+	void (*SetFontColor)(A_RGB,u32);	//(A_RGB fgColor,u32 bgColor) RGB_CURR , (.a)0xff000000|bgColor Îª²»Í¸Ã÷
 	int (*DrawLineString)(GuiWindow*,POINT*,const char*);//Display single line of text, no automatic line breaks
 	int (*DrawRectString)(GuiWindow*,RECTL*,const char*);//The specified area displays text and wraps automatically
 	void (*DrawCenterString)(GuiWindow*,char*);	//(GuiWindow *pWindow,char *src)
@@ -41,7 +41,7 @@ typedef struct
 	int (*Utf8ToGbk)(char*,int,char*);	//(char *pGbk,int dest_size,char *pUtf8)
 	int (*GbkToUtf8)(char*,int,char*);	//(char *pUtf8,int dest_size,char *pGbk)
 }API_FONT_Def;
-extern const API_FONT_Def* pFontFun;
+extern API_FONT_Def* pFontFun;
 
 
 

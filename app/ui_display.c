@@ -10,18 +10,18 @@ extern "C" {
 UI_DisplayTheme tUI_Theme;
 
 //===========标准主题==========================
-UI_DisplayTheme const UI_comTheme=
+const UI_DisplayTheme UI_comTheme=
 {
 	"按[0]键下翻页",
 	"按[8]键上翻页",
 	"[8]上翻页,[0]下翻页",
 
-	L"E:\\bmp\\Small_f.bin",
+	"Small_f.clz",
 	UI_EDIT_sMONEY_fW,
 	UI_EDIT_sMONEY_fH,
 };
 
-void UI_LoadTheme(UI_DisplayTheme *pTheme)
+void UI_LoadTheme(const UI_DisplayTheme *pTheme)
 {
 	API_memcpy(&tUI_Theme,pTheme,sizeof(UI_DisplayTheme));
 }
@@ -32,7 +32,8 @@ void UI_DisplayInit(void)
 }
 
 //=====================区域图片备份======================================
-RECTL tBitMapRect,A_RGB* pBitMapBuff=NULL;
+RECTL tBitMapRect;
+A_RGB* pBitMapBuff=NULL;
 
 void UI_DisplayBitMapGet(u16 x,u16 y,u16 w,u16 h)
 {
@@ -61,22 +62,22 @@ void UI_ShowColorRect(RECTL *pRect,int Width,A_RGB Color)
 }
 
 //=============================================================================
-void UI_SetColorRGB565(A_RGB fgColor, uint32 bgColor)
+void UI_SetColorRGB565(A_RGB fgColor, u32 bgColor)
 {
 	pFontFun->SetFontColor(fgColor,bgColor);
 }
 int UI_DrawString(POINT* prclTrg,const char *src)
 {
-	return pFontFun->DrawString(prclTrg,src);
+	return pGuiFun->DrawLineString(prclTrg,src);
 }
 
 int UI_DrawRectString(RECTL* pRect,const char *src)
 {
-	return pFontFun->DrawRectString(pRect,src);
+	return pGuiFun->DrawRectString(pRect,src);
 
 }
 
-
+//==========自定义编辑器(自定义UI显示====================
 void API_GUI_InputEdit(char* pStrDef,int tMaxLen,u32 Way,Fun_ShowNum pShow)
 {
 	pGuiFun->InputEdit(pStrDef,tMaxLen,Way,pShow);
@@ -297,7 +298,7 @@ void UI_ShowScreenBmp(const char* pfilePath,char* pMsg,u16 mTop)
 	API_GUI_Show();
 }
 
-void UI_ShowBmpAndMoney(uint16 * pfilePath,char* pTradeMoney)
+void UI_ShowBmpAndMoney(const char* pfilePath,char* pTradeMoney)
 {
 	RECTL	Rect;
 	Rect.left	= SCREEN_APP_X;
@@ -467,12 +468,12 @@ int APP_GUI_Menu(char* pTitle,char *pMsg,int tNum,int tCurInx,const char** pMenu
 //make a QR code and display it to lcd
 void API_GUI_Draw565QRcode(RECTL* pRECTL,char *pInMsg,A_RGB fgColor)
 {
-	pGuiFun->ShowQrCode(pRECTL,pInMsg,fgColor);
+	pGuiFun->ShowQrCodeRect(pRECTL,pInMsg,fgColor);
 }
 
-int  API_GUI_Show(void)
+void API_GUI_Show(void)
 {
-	return pGuiFun->GUI_Show();
+	pGuiFun->Show();
 }
 
 //----由于滚显示更新信息---pOriginal 原信息空间 Originalsize原信息空间大小--pAddMsg 新加信息------
@@ -480,24 +481,24 @@ int  API_GUI_Show(void)
 
 void APP_ShowSta(char *pTitle,char *pMsg)
 {
-	pGuiFun->CreateShowWindow(pTitle,NULL,NULL,0);
+	pGuiFun->CreateShowWindow(pTitle,NULL,NULL);
 	pGuiFun->Info(NULL,TEXT_ALIGN_CENTER|TEXT_VALIGN_CENTER,pMsg);
-	pGuiFun->GUI_Show();
+	pGuiFun->Show();
 }
 
 int APP_ShowMsg(char *pTitle,char *pMsg,int timeOutMs)
 {
-	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL,0);
+	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL);
 	pGuiFun->Info(NULL,TEXT_ALIGN_CENTER|TEXT_VALIGN_CENTER,pMsg);
-	pGuiFun->GUI_Show();
+	pGuiFun->Show();
 	return APP_WaitUiEvent(timeOutMs);
 }
 
 int APP_ShowInfo(char *pTitle,char *pInfo,int timeOutMs)
 {
-	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL,0);
+	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL);
 	pGuiFun->OprInfo(pInfo,NULL);
-	pGuiFun->GUI_Show();
+	pGuiFun->Show();
 	return APP_WaitUiEvent(timeOutMs);
 }
 

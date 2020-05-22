@@ -9,7 +9,9 @@
 //=====(TERM_PAR结构由客户区定义)===========
 int TermParFactoryReset(void)
 {
-	DeleteFile(TermParfilePath);
+	TRACE("test...1\r\n");
+	API_fremove(TermParfilePath);
+	TRACE("test...2\r\n");
 	TermParSetDefault();
 	return APP_FileSaveBuff(TermParfilePath,0,&Term_Par, sizeof(Term_Par));
 }
@@ -120,7 +122,7 @@ void ClearTradeRecord()
      }
      else
      {
-     	DeleteFile(TransactionfilePath);
+     	API_fremove(TransactionfilePath);
      } 
 }
 
@@ -128,7 +130,7 @@ void ClearTradeRecord()
 //===========恢复出厂设置========================
 int APP_ParFacInit(char* title)
 {
-	if(APP_InputPin(title,STR_ENTER_THE_AUTHENTICATION_PASSu16,  STR_PRESS_NUBER_KEYS_ENTER, "002197")) return 1;
+	if(APP_InputPin(title,STR_ENTER_THE_AUTHENTICATION_PASSWORD,  STR_PRESS_NUBER_KEYS_ENTER, "002197")) return 1;
 	#ifdef HARD_WIFI
 	pSdkFun->wifi->Rest();
 	#endif

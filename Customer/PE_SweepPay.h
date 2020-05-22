@@ -40,7 +40,7 @@
 #define STR_PARAM_SETTINGS				DS("Param Settings",								"参数设置")
 #define WIFI_FUNTION					DS("WIFI",											"WIFI")
 #define WIFI_SWITCH						DS("Wifi On/Off",									"WIFI开关")
-#define WIFI_PASSu16					DS("Wifi Connect", 									"WIFI连接")
+#define WIFI_PASSWORD					DS("Wifi Connect", 									"WIFI连接")
 #define STR_SET_VOLUME					DS("Set Volume",									"设置音量")
 //#define WIFI_SCAN_QRCODE				DS("Scan Wifi QRcode", 								"扫WIFI二维码")
 
@@ -56,7 +56,7 @@
 #define ORDER_FPS_QUERY					DS("FPS Enquiry",									"FPS订单查询")
 #define ORDER_RECORD					DS("Tx Record",										"订单记录")
 #define STR_MERCHANT_INFO				DS("Merchant Info",									"商户信息")
-#define STR_SET_ADMIN_PASSu16          DS("Reset access code",								"设置许可码")
+#define STR_SET_ADMIN_PASSWORD          DS("Reset access code",								"设置许可码")
 #define STR_ENTER_ACCESS_CODE    		DS("Please enter access code",						"请输入许可码")
 #define STR_ACCESS_CODE_ERR				DS("access code error",								"许可码错误")
 	

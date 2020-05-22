@@ -1,19 +1,21 @@
 #ifndef _UI_MENU_
 #define _UI_MENU_
 //=======单项菜单结构==========
+typedef int (*fMenuFun)(char*); 
+
 typedef struct 
 {//显示+功能
 	char			*pText;		//显示内容
-	APP_HANDLE		pFunMenu;	//功能项
+	fMenuFun		pFunMenu;	//功能项
 }CMenuItemStru;
 
 
 typedef struct _CMenuListPar
 {//用于组织菜单的
 	struct _CMenuListPar *pNext;
-	APP_HANDLE		pFunMenu;	//功能项
+	fMenuFun		pFunMenu;	//功能项
 	int				TextLen;	//显示内容长度
-	char			Text[4];	//显示内容,编译器支持的话 Text[0]
+	char			Text[0];	//显示内容,编译器支持的话 Text[0]
 }CMenuListPar;
 
 typedef int (*APP_IndexH)(char*,int); 
@@ -28,7 +30,7 @@ typedef enum
 	MENU_SHOW_AFT,	//最后一行显示
 	MENU_BACK_MAP,	//背景图片功能
 }UI_MENU_ADD_TYPE;
-extern void APP_AddCurrentMenuOtherFun(UI_MENU_ADD_TYPE type,APP_HANDLE pFunc,const char *pFunTitle);
+extern void APP_AddCurrentMenuOtherFun(UI_MENU_ADD_TYPE type,void* pFunc,const char *pData);
 
 extern int APP_ShowMenuProsse(void);
 

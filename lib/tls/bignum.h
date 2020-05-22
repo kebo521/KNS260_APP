@@ -1,4 +1,4 @@
-/**
+/*
  * \file bignum.h
  *
  * \brief Multi-precision integer library

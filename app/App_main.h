@@ -113,12 +113,17 @@
 typedef struct	
 {
 	char Mask[4]; 	// "app"
+	void* (*malloc)(u32);
+	void (*free)(void*);
 	void (*SetSleep)(int);//(int En)
 	int (*GetHardMsg)(u8,void *,int);	//(u8 type,void *pOut,int OutSize)
 	int (*SetHardMsg)(u8,void *,int);	//(u8 type,void *pIn,int InSize)
 	char* (*GetMasterVersion)(void);	// return Version
 	int (*GetParVersion)(char*,int);	//(char* pParVer,int sizeVer)
 	int (*OnlyCamScan)(char,int,int,char*,int);	//(char flagKey,int MinLen,int MaxLen,char* pOutCode,int msTimeOut)
+	void* (*JsonLoad)(char*,char*);	//(char *pIndata,char* pEnd)
+	void* (*JsonGetValue)(void*,char*,u8 *); //(dfJsonTable *pStart,char* pKey,u8 *pType)
+	void (*JsonDestroy)(void *);	//(dfJsonTable *pTable)
 }API_USE_Def;
 
 typedef struct 

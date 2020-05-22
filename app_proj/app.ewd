@@ -49,7 +49,7 @@
         </option>
         <option>
           <name>RunToEnable</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>RunToName</name>
@@ -81,7 +81,7 @@
         </option>
         <option>
           <name>OCProductVersion</name>
-          <state>7.20.2.7418</state>
+          <state>6.70.3.6347</state>
         </option>
         <option>
           <name>OCDynDriverList</name>

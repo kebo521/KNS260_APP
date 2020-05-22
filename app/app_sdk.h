@@ -75,7 +75,7 @@ extern int APP_ShowTradeMsg(char *pShowMsg,int tTimeOutMS);
 extern void APP_ShowQRcodeDis(char *pQRcode,char *pTradeMoney);
 extern int APP_ShowEnquiriesMsg(char *pTmoney,char* pTradeType,char* pDate,char* pTime,char* pOrderNo);
 extern int APP_OnlyCamScan(char flagKey,int MinLen,int MaxLen,char* pOutCode,int msTimeOut);
-extern int APP_GetScanVer(char *pVer);
+extern char* APP_GetMasterVer(void);
 
 extern int APP_Edit(EDIT_DATA *pEdit,char* pOutStr);
 //=========flagd:D为"二维码收款",R为"订单退款",S为"扫码收款",Q为"交易查询"=========
@@ -96,18 +96,27 @@ extern int APP_InputMerchSN(char flagd,char* pOutStr,int MinLen,int Maxlen,int t
  * @return 系统当前毫秒数
  */	
 extern int  API_TimeCurrMS(void);	
+extern int OsSetTime(ST_TIME *Time);
+extern void OsGetTime(ST_TIME *Time);
+extern void OsSleep(unsigned int Ms);
+
 extern void APP_ScreenSleep(u8 En);
 extern int APP_GetHardMsg(u8 type,void *pOut,int OutSize);
 extern int APP_SetHardMsg(u8 type,void *pOut,int OutSize);
 
-extern int TMS_GetParVersion(char* pParVer,int sizeVer);
+extern void API_SetLanguage(int language);
 
 //=================对语音播放增加参数控制，解决互斥问题=========================
 
-#define 	APP_TTS_PlayText 	pSdkFun->sdk->TtsPlay
-#define 	APP_AudioDtmfPlay 	pSdkFun->sdk->DtmfPlay
+//#define 	APP_TTS_PlayText 	pSdkFun->sdk->TtsPlay
+//#define 	APP_AudioDtmfPlay 	pSdkFun->sdk->DtmfPlay
 
+extern int AudioSetVolume(int volume);
+extern int AudioGetVolume(void);
+extern int APP_TTS_PlayText(const char *format,...);
+extern int APP_AudioDtmfPlay(u8 tone,u8 time100Ms);
 
+//AudioSetVolume
 
 
 #endif

@@ -70,7 +70,7 @@ typedef struct
 	int (*RecordRead)(void *);		//(void *pData)
 	int (*RecordWrite)(void *);		//(void *pData)
 }API_FILE_Def;
-extern const API_FILE_Def*		pFileFun;
+extern API_FILE_Def*		pFileFun;
 //=============证通文件系统接口========================
 #define gFILE void*
 //typedef		(void*)		gFILE;			

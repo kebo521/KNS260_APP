@@ -1,4 +1,4 @@
-/**
+/*
  * \file pk.h
  *
  * \brief Public Key abstraction layer

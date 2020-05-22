@@ -1,5 +1,5 @@
-#ifndef _UI_DISPLAY_
-#define _UI_DISPLAY_
+#ifndef _KS_UI_
+#define _KS_UI_
 
 //===============色彩参数定义========================================
 
@@ -44,10 +44,10 @@ typedef struct
 {
 	u16					w;				//!< 图像宽
 	u16					h;				//!< 高
-	u16					mline,len;				//!< 高
-	u8*					pByte;			
+	u16					lineByte;		//每个行所占字节数
+	u16					pointBit;		//每个点所占位数
+	u8*					data;			
 }IMAGE;									
-
 
 typedef struct _GuiWindow{
 	int left;
@@ -64,37 +64,6 @@ typedef struct _GuiWindow{
 } GuiWindow,*LPGuiWindow;
 //extern GuiWindow UI_screen;
 
-extern int ui_Open(int argc,char **argv);
-extern void ui_Close(void);
-extern A_RGB* ui_get_screen(RECTL* pRect,int *pLineWidth);
-extern void ui_screen_color(A_RGB cBack);
-extern void ui_syn_push(void);
-
-//=============================================================
-extern GuiWindow *UI_RootCanvas(void);
-extern GuiWindow *UI_StatusbarCanvas(void);
-extern GuiWindow *UI_CreateCanvas(GuiWindow *parent, unsigned int x, unsigned int y,unsigned int width, unsigned int height);
-extern void UI_Push(GuiWindow *pWindow,RECTL *pRect);
-//extern void UI_CanvasSetBackground(GuiWindow *pWindow,int bgstyle,void *img,A_RGB bg);
-extern void UI_DestroyWindow(GuiWindow *window);
-extern int UI_ClearArea(GuiWindow *window,RECTL *pRect);
-extern void UI_ShowWindow(GuiWindow *window,int show, int flag);
-
-extern void UI_FillHitBack(A_RGB* pBack,int w,int h);
-extern void UI_SetBackground(GuiWindow *pWindow,FunFillColour pFillColour);	//(u32* pOut,int width,int height)
-extern void UI_ShowBackground(GuiWindow *pWindow);
-extern void UI_point(GuiWindow *pWindow,int x,int y,A_RGB Inrgb);
-extern void UI_line(GuiWindow *pWindow,int xs, int ys, int xe, int ye,A_RGB argb);
-extern void UI_hline(GuiWindow *pWindow,int left,int top,int width,A_RGB Color);	 //horizontally line
-extern void UI_vline(GuiWindow *pWindow,int left,int top,int height,A_RGB Color); //vertically line
-extern void UI_FillRectSingLe(GuiWindow *pWindow,RECTL *pRect,A_RGB Color);
-extern void UI_FillRectXor(GuiWindow *pWindow,RECTL *pRect,A_RGB Color);
-extern void UI_GetRectBuff(GuiWindow *pWindow,RECTL *pRect,A_RGB *pRGB);
-extern void UI_SetRectBuff(GuiWindow *pWindow,RECTL *pRect,A_RGB *pRGB);
-extern int UI_ShowPictureFile(GuiWindow *pWindow,RECTL *prclTrg,const char *pfilePath);
-extern void UI_ShowQrCode(GuiWindow *pWindow,RECTL* pRect,const char* pInfo,A_RGB Color);
-
-extern void UI_ShowBottomProgress(GuiWindow *pWindow,RECTL *pRect,int thick,int ratio);
 
 typedef struct _API_UI	
 {
@@ -105,18 +74,25 @@ typedef struct _API_UI
 	LPGuiWindow (*RootCanvas)(void);
 	LPGuiWindow (*StatusbarCanvas)(void);
 	void (*ShowWindow)(GuiWindow *,int,int);	//GuiWindow *,int show, int flag
+	int (*ClearArea)(GuiWindow *,RECTL*); //(GuiWindow *window,RECTL* pRect)
 	void (*DestroyWindow)(GuiWindow *);
 
 	void (*Push)(GuiWindow *,RECTL*);	//Cache area is pushed to video memory,(RECTL==NULL,Show full area)
 
 	void (*FillRectSingLe)(GuiWindow *,RECTL*,A_RGB);	//(xywh,RGB_CURR(r,g,b))
+	void (*FillRectXor)(GuiWindow *,RECTL*,A_RGB);	//(GuiWindow *pWindow,RECTL *pRect,A_RGB Color)
+	void (*GetRectBuff)(GuiWindow *,RECTL*,A_RGB*);	//(GuiWindow *pWindow,RECTL *pRect,A_RGB *pRGB)
+	void (*SetRectBuff)(GuiWindow *,RECTL*,A_RGB*); //(GuiWindow *pWindow,RECTL *pRect,A_RGB *pRGB)
 
 	void (*ShowQrCode)(GuiWindow *,RECTL* ,const char*,A_RGB);	//(xywh,"Text",RGB_CURR(r,g,b))
 	int (*ShowPictureFile)(GuiWindow *,RECTL *,const char *);
 	void (*ShowBottomProgress)(GuiWindow *,RECTL *,int,int);	//(GuiWindow *pWindow,RECTL *pRect,int thick,int ratio) ratio (0~100)
 	void (*ShowParMiddleSlide)(GuiWindow *,int); //ratio (0~100)
+
+	int (*bitmapLoad)(const char*,IMAGE*);	//(const char* filename,IMAGE *pOutMap)	//打开图片文件
+	void (*bitmapDestroy)(IMAGE*);	//(IMAGE* pBitMap)
 }API_UI_Def;
-extern const API_UI_Def*			pUiFun;
+extern API_UI_Def*			pUiFun;
 
 #endif
 

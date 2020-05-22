@@ -1,7 +1,7 @@
 #include "communal.h"
 
 
-void md5( const unsigned char *input, u32 ilen, unsigned char* pOutput)
+void md5(unsigned char *input, u32 ilen, unsigned char* pOutput)
 {
 	pTlsFuntion->hash->md(MBEDTLS_MD_MD5,input,ilen,pOutput);
 }

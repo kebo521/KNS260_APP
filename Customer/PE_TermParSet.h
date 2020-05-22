@@ -23,7 +23,7 @@
 #define STR_MERCHANT_NUMBER_LENGTH_ERROR			DS("Merchant ID length error",							"商户号长度错")
 #define STR_KEY_LENGTH_ERROR						DS("Key length error",									"密钥长度错")
 #define STR_IMPORTED_SUCCESSFULLY					DS("Imported successfully",								"导入成功")
-//#define STR_ENTER_THE_AUTHENTICATION_PASSu16		DS("Please enter authentication password",				"请输入认证密码")
+//#define STR_ENTER_THE_AUTHENTICATION_PASSWORD		DS("Please enter authentication password",				"请输入认证密码")
 //#define STR_RESTORE_FACTORY_SETTINGS_SUCCESSFULLY	DS("Factory settings restored successfully",			"恢复出厂设置成功")
 #define STR_TIME_SETTING							DS("Time setting",										"时间设置")
 #define STR_MERCHANT_KEY_INPUT						DS("Merchant key input",								"商户密钥输入")

@@ -32,7 +32,7 @@
  * 	国内外版本选择
  */
 //#define DOMESTIC_BANK_VERION 						// 国内银行版
-#define INTERNATIONAL_VERSION						// 国际版本（海外版）
+//#define INTERNATIONAL_VERSION						// 国际版本（海外版）
 
 #if(defined INTERNATIONAL_VERSION)
 	#define 	HTTP_BASE_ADDERR		"https://pay.wepayez.com/pay"	//"https://payintl-test.wepayez.com/pay"	//

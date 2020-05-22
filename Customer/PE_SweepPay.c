@@ -603,7 +603,7 @@ void PE_ShowQRcodeDis(char *pQRcode,char *pTradeMoney)
 	Rect.top	= SCREEN_APP_Y;
 	Rect.width	= SCREEN_APP_W;
 	Rect.height = SCREEN_APP_H;
-	UI_ShowPictureFile(&Rect,L"E:\\bmp\\QRcode.bin");
+	UI_ShowPictureFile(&Rect,"QRcode.clz");
 
 	Rect.left	= UI_QR_CODE_X;
 	Rect.top	= UI_QR_CODE_Y;
@@ -1181,10 +1181,10 @@ int PE_CamScan(char * pTitle,char* pHintOrTMoney,char *pOutCode,int MinLen,int M
 
 	{
 		POINT	rclTrg;
+		pGuiFun->FillRect(&Rect,RGB565(35,35,35));
+		Width = API_strlen(pTitle)*FONT_SIZE/2;
 		rclTrg.left	= Rect.left;
 		rclTrg.top	= Rect.top;
-		pSdkFun->ui->DisplayLine(&rclTrg,Rect.width,Rect.height,RGB565(35,35,35));
-		Width = API_strlen(pTitle)*FONT_SIZE/2;
 		if(Width < Rect.width)
 			rclTrg.left=Rect.left+(Rect.width-Width)/2;
 		else rclTrg.left=Rect.left;
@@ -1196,7 +1196,7 @@ int PE_CamScan(char * pTitle,char* pHintOrTMoney,char *pOutCode,int MinLen,int M
 	Rect.top	= UI_MAP_CONT_Y;
 	Rect.height = UI_MAP_CONT_H;
 	
-	UI_ShowPictureFile(&Rect,L"E:\\bmp\\ScanIpt.bin");
+	UI_ShowPictureFile(&Rect,"ScanIpt.clz");
 	//UI_ShowPictureFile(&Rect,L"E:\\bmp\\ScanCod.bin");
 	Rect.top	= UI_SCAN_TEXT_Y;
 	flagKey	= 0x02;

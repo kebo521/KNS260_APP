@@ -71,12 +71,7 @@ int APP_HardVesion(char* pTitle)
 	char ShowMsg[512];
 	char	buff[128]={0};
 	int		ret,offset;
-	offset=API_sprintf(ShowMsg,"SYSTEM:%s\n",GetMercuryVersion());
-	ret=APP_GetScanVer(buff);
-	if(ret > 0)
-	{
-		offset += API_sprintf(ShowMsg+offset,"SCAN:%s\n",buff);
-	}
+	offset=API_sprintf(ShowMsg,"Master:%s\n",APP_GetMasterVer());
 	ret=WIFI_GetVersion(buff,sizeof(buff));
 	if(ret>0)
 	{
@@ -423,10 +418,9 @@ int TEST_InputFee(char *pTitle)
 	return APP_ShowMsg(pTitle,total_fee,5000);
 }
 
-
+/*
 #define WW_PORT				18687
 #define WW_IP				"218.17.164.124"
-
 
 int TEST_AsynNet(char *pTitle)
 {
@@ -451,7 +445,7 @@ int TEST_AsynNet(char *pTitle)
 
 	
 	APP_ShowSta(pTitle,"连接网络");
-	pSdkFun->net->Set_Connet(0,WW_IP, WW_PORT);
+	APP_Network_Connect(WW_IP, WW_PORT,0);
 	API_strcpy(buff,"1234567890");
 	sendLen=10;
 	
@@ -490,7 +484,7 @@ int TEST_AsynNet(char *pTitle)
 						//APP_TTS_PlayText("服务器连接成功");
 						NetFlow=1;
 						APP_ShowSta(pTitle,"发送数据");
-						pSdkFun->net->Set_SendBuff(buff,sendLen);
+						APP_Network_Send(buff,sendLen);
 						Set_WaitEvent(7*1000, EVENT_NET);
 						break;
 					case NET_MSG_DISCONNECT :
@@ -501,7 +495,7 @@ int TEST_AsynNet(char *pTitle)
 						break;
 					case NET_MSG_RECV:
 						APP_ShowSta(pTitle,"再发送数据");
-						pSdkFun->net->Set_SendBuff(buff,sendLen);
+						APP_Network_Send(buff,sendLen);
 						Set_WaitEvent(7*1000, EVENT_NET);
 						break;
 					case NET_MSG_SEND:
@@ -539,7 +533,7 @@ int TEST_AsynNet(char *pTitle)
 	}
  
 }
-
+*/
 /*
 {"head":{"retStatus":"S","retCode":"000000","retMsg":"浜ゆ槗鎴愬姛","serviceCode":"000300860006"},
 "body":{"response":{"zjhm":"430621198901280443","zjlx":"201","xm":"鍚翠笁杈?,"djxh":"20124300910036951071",
@@ -639,7 +633,7 @@ int TEST_JSON(char *pTitle)
 			if(pBRCV)
 			{
 				char *sbjbjgdm;
-				dfJsonTable *pV=pBRCV;
+				dfJsonTable *pV=(dfJsonTable *)pBRCV;
 				TRACE("body/response/cbdjxxlist/v[%d][%x]\r\n",type,pBRCV);
 				sbjbjgdm=Conv_GetJsonValue(pV,"sbjbjgdm",&type);
 				TRACE("body/response/cbdjxxlist/v/sbjbjgdm1[%d][%s]\r\n",type,sbjbjgdm);
@@ -664,23 +658,23 @@ int TEST_JSON(char *pTitle)
 			if(body)
 			{
 				char *zjhm,*cbdjxxlist;
-				response=Conv_GetJsonValue(body,"response",&type); //第一次取出第一层结构
+				response=Conv_GetJsonValue((dfJsonTable *)body,"response",&type); //第一次取出第一层结构
 				TRACE("retCode[%d][%x]\r\n",type,response);
 				if(response)
 				{
-					zjhm=Conv_GetJsonValue(response,"zjhm",&type);
+					zjhm=Conv_GetJsonValue((dfJsonTable *)response,"zjhm",&type);
 					TRACE("body/response/zjhm[%d][%s]\r\n",type,zjhm);
-					cbdjxxlist=Conv_GetJsonValue(response,"cbdjxxlist",&type);
+					cbdjxxlist=Conv_GetJsonValue((dfJsonTable *)response,"cbdjxxlist",&type);
 					TRACE("body/response/cbdjxxlist[%d][%x]\r\n",type,cbdjxxlist);
 					if(cbdjxxlist)
 					{
 						char *v;
-						v=Conv_GetJsonValue(cbdjxxlist,"v",&type);
+						v=Conv_GetJsonValue((dfJsonTable *)cbdjxxlist,"v",&type);
 						TRACE("body/response/cbdjxxlist/v[%d][%x]\r\n",type,v);
 						if(v)
 						{
 							char *sbjbjgdm;
-							dfJsonTable *pV=v;
+							dfJsonTable *pV=(dfJsonTable *)v;
 							sbjbjgdm=Conv_GetJsonValue(pV,"sbjbjgdm",&type);
 							TRACE("body/response/cbdjxxlist/v/sbjbjgdm1[%d][%s]\r\n",type,sbjbjgdm);
 							sbjbjgdm=Conv_GetJsonValue(pV->pNext,"sbjbjgdm",&type);
@@ -702,15 +696,15 @@ int TEST_JSON(char *pTitle)
 
 int APP_CountdownDemo(char* title)
 {
-	if(pSdkFun->ui->Mask[3] < 26)
+	if(pGuiFun->Mask[3] < 26)
 		return APP_ShowMsg("主控版本太低","不支持该功能",3000);
 	
 	APP_ShowSta(title,"从100到000");
-	pSdkFun->ui->Countdown_ShowInit(TEXT_ALIGN_CENTER|TEXT_VALIGN_BOTTOM,3,100);
+	pGuiFun->Countdown_ShowInit(TEXT_ALIGN_CENTER|TEXT_VALIGN_BOTTOM,3,100);
 	while(1)
 	{
-		Sleep(1000);
-		if(EVENT_TIMEOUT == pSdkFun->ui->Countdown_ShowGet())
+		OsSleep(1000);
+		if(EVENT_TIMEOUT == pGuiFun->Countdown_ShowGet())
 			break;
 	}
 	APP_ShowSta(title,"结束演示");

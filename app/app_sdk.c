@@ -22,7 +22,7 @@ int APP_Edit(EDIT_DATA *pEdit,char* pOutStr)
 		pGuiFun->CreateShowWindow(pEdit->pTitle,TOK,TCANCEL);
 		pGuiFun->Edit_Prompt(SIZE_NORMAL,pEdit->pFrontText,SIZE_NORMAL,pEdit->pAfterText);
 		pGuiFun->Edit_Control(SIZE_NORMAL,pOutStr,pEdit->Max,pEdit->Way,pEdit->Limit);
-		pGuiFun->GUI_Show();
+		pGuiFun->Show();
 		Event=APP_WaitUiEvent(pEdit->timeOutMs);
 		if(Event==EVENT_OK) //获取输入卡号数据
 		{
@@ -101,8 +101,7 @@ int APP_InputPin(char* pTitle,char* pFrontTextBuf,char* pAfterTextBuf,char* pkey
 	if(ret>=  tEdit.Min)
 	{
 		if(API_strcmp(pOutMsg,pkey)==0) return 0;
-
-		APP_ShowMsg(pTitle,STR_PASSu16_ERR,3000);	
+		APP_ShowMsg(pTitle,STR_PASSWORD_ERR,3000);	
 	}
 	return -1;
 }
@@ -393,11 +392,11 @@ int APP_ShowEnquiriesMsg(char *pTmoney,char* pTradeType,char* pDate,char* pTime,
 //=======================扫码控制函数================================
 int APP_OnlyCamScan(char flagKey,int MinLen,int MaxLen,char* pOutCode,int msTimeOut)
 {
-	return pSdkFun->scan->OnlyScan(flagKey,MinLen,MaxLen,pOutCode,msTimeOut);
+	return pSdkFun->app->OnlyCamScan(flagKey,MinLen,MaxLen,pOutCode,msTimeOut);
 }
-int APP_GetScanVer(char *pVer)
+char* APP_GetMasterVer(void)
 {
-	return pSdkFun->scan->GetVer(pVer);
+	return pSdkFun->app->GetMasterVersion();
 }
 
 
@@ -727,58 +726,58 @@ int APP_EditSum(char* pTitle,char TitleFlag,char* pOutStr,int timeOutMs)
 int APP_EDIT_SetDateTime(char* title)
 {
 	char str[10];
-	u16	 MaxDay;  
-	SYSTEMTIME	dtime;
-	GetLocalTime(&dtime);	
-	API_sprintf(str,"%04d%02d%02d",dtime.wYear,dtime.wMonth,dtime.wDay); 
-    if(0 == APP_InputNum(title,"输入日期[年月日]:","[8位]数字按键输入", str, 8,8))
+	u16  MaxDay; 
+	ST_TIME tTime;
+	OsGetTime(&tTime);
+	API_sprintf(str,"%04d%02d%02d",tTime.Year,tTime.Month,tTime.Day); 
+	if(0 == APP_InputNum(title,"输入日期[年月日]:","[8位]数字按键输入", str, 8,8))
 	{
-		dtime.wDay  =API_atoi(str+6);
+		tTime.Day  =API_atoi(str+6);
 		str[6]='\0';
-		dtime.wMonth=API_atoi(str+4);
+		tTime.Month=API_atoi(str+4);
 		str[4]='\0';
-		dtime.wYear=API_atoi(str);
+		tTime.Year=API_atoi(str);
 		//MercuryTrace("DateTime:[%s] [%02d:%02d:%02d]",str,dtime.wHour,dtime.wMinute,dtime.wSecond);
-		MaxDay=30+(((dtime.wMonth&1)^(dtime.wMonth&8)>>3)!=0)-(dtime.wMonth==2)*2+(!(dtime.wYear%4)&&(dtime.wYear%100)&&(dtime.wMonth==2)||!(dtime.wYear%400));
-		if( (dtime.wYear<1900 || dtime.wYear>2100) || (dtime.wMonth<1 || dtime.wMonth>12) || (dtime.wDay<1 || dtime.wDay>MaxDay))
+		MaxDay = 30+(((tTime.Month&1)^(tTime.Month&8)>>3)!=0)-(tTime.Month==2)*2+((tTime.Month==2) \
+		&&((((tTime.Year&0x03)==0)&&((tTime.Year%100)!=0))||((tTime.Year%400)==0)));
+		if( (tTime.Year<1900 || tTime.Year>2100) || (tTime.Month<1 || tTime.Month>12) || (tTime.Day<1 || tTime.Day>MaxDay))
 		{
 			APP_ShowMsg(title,"日期格式错误",3000);
-			return -4;
+			return EVENT_NONE;
 		}
-		SetLocalTime(&dtime);
-		API_sprintf(str,"%02d%02d",dtime.wHour,dtime.wMinute); 
+		OsSetTime(&tTime);
+		API_sprintf(str,"%02d%02d",tTime.Hour,tTime.Minute); 
 		if(0 == APP_InputNum(title,"输入时间[时分]:","[4位]数字按键输入",str,4,4))
 		{
-			dtime.wMinute=API_atoi(str+2);
+			tTime.Minute=API_atoi(str+2);
 			str[2]='\0';
-			dtime.wHour=API_atoi(str);
-			if(( dtime.wHour>23) || ( dtime.wMinute>59))
+			tTime.Hour=API_atoi(str);
+			if(( tTime.Hour>23) || ( tTime.Minute>59))
 			{
 				APP_ShowMsg(title,"时间格式错误",3000);
-				return -4;
+				return EVENT_NONE;
 			}
-			SetLocalTime(&dtime);
+			OsSetTime(&tTime);
 			APP_ShowMsg(title,"设置完成",3000);
 		}
-		return 0;
-    }
-    return -1;
+		return EVENT_NONE;
+	}
+	return EVENT_NONE;
 }
-
 
 
 int APP_Check_DateTime(char* title)
 {
 	int ret=0;
-	SYSTEMTIME	dtime;
-	GetLocalTime(&dtime);
-	if(dtime.wYear < 2018)
+	ST_TIME	dtime;
+	OsGetTime(&dtime);
+	if(dtime.Year < 2018)
 	{
 		ret=APP_EDIT_SetDateTime(title);
 	}
 	if(ret < 0)
 	{
-		ret=pSdkFun->sdk->tmsSyn(title);
+	//	ret=pSdkFun->sdk->tmsSyn(title);
 	}
 	return 0;
 }
@@ -834,29 +833,78 @@ int APP_InputMerchSN(char flagd,char* pOutStr,int MinLen,int Maxlen,int timeOutM
  */	
 int  API_TimeCurrMS(void)
 {
-	return pSysFun->GetTickCount();
+	return api_SysFun.GetTickCount();
+}
+
+void OsSleep(unsigned int Ms)
+{
+	 api_SysFun.Sleep(Ms);
+}
+
+int OsSetTime(ST_TIME *Time)
+{
+	return api_SysFun.SetTime(Time);
+}
+void OsGetTime(ST_TIME *Time)
+{
+	api_SysFun.GetTime(Time);
 }
 
 void APP_ScreenSleep(u8 En)
 {
-	
-	pSdkFun->sdk->ScreenSleep(En);
+	pSdkFun->app->SetSleep(En);
 }
 
 int APP_GetHardMsg(u8 type,void *pOut,int OutSize)
 {
-	return pSdkFun->sdk->GetHardMsg(type,pOut,OutSize);
+	return pSdkFun->app->GetHardMsg(type,pOut,OutSize);
 }
 
 int APP_SetHardMsg(u8 type,void *pOut,int OutSize)
 {
-	return pSdkFun->sdk->SetHardMsg(type,pOut,OutSize);
+	return pSdkFun->app->SetHardMsg(type,pOut,OutSize);
 }
 
-int TMS_GetParVersion(char* pParVer,int sizeVer)
+void API_SetLanguage(int language)
 {
-	return pSdkFun->sdk->tmsVer(pParVer,sizeVer);
+	pGuiFun->SetLanguage(language);
 }
 
+u8	mAudioPlayType;
+int APP_TTS_PlayText(const char *format,...)
+{	
+	va_list arg;	
+	char str[128];
+	if(mAudioPlayType==1)
+	{
+		mAudioPlayType=0;
+	//	AudioDtmfAbort();
+	}
+	
+	va_start( arg, format );
+	vsnprintf(str,sizeof(str),format,arg);
+	va_end(arg);
+	mAudioPlayType=1;
+//	return TTS_PlayText((uint8 *)str, API_strlen(str));
+        return 0;
+}
+int APP_AudioDtmfPlay(u8 tone,u8 time100Ms)
+{
+	if(mAudioPlayType == 0)
+	{
+		mAudioPlayType=1;
+		//return AudioDtmfPlay((MERCURY_DTMF_TONE_ID_E)tone,time100Ms);
+	}
+	return 0;
+}
+
+int AudioSetVolume(int volume)
+{
+	return 0;
+}
+int AudioGetVolume(void)
+{
+	return 0;
+}
 
 

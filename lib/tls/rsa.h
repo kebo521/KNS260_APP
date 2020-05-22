@@ -1,4 +1,4 @@
-/**
+/*
  * \file rsa.h
  *
  * \brief This file provides an API for the RSA public-key cryptosystem.

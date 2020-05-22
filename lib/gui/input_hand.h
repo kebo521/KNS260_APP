@@ -2,9 +2,6 @@
 #ifndef _INPUT_HAND_
 #define _INPUT_HAND_
 
-typedef int (*DefAbsAnalytical)(u16*,u16*); 
-
-extern DefAbsAnalytical pAbsAnalytical;
 
 typedef enum 
 {
@@ -48,8 +45,6 @@ typedef enum
 	K_INVALID		=0x00			//!< 无效按键
 }KEY_VAL;							//V3按键定义
 
-extern void Start_HandInput(void);
-extern void Stop_HandInput(void);
 
 
 

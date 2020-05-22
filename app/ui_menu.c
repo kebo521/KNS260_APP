@@ -15,7 +15,7 @@
 //---------------------------------------------------------------
 int APP_CreateNewMenuByStr(char *pTitle,int tNum,char* *pMenuText,const APP_IndexH pUnifiedFunc,int TimeOutMs)
 {
-	return pGuiFun->CreateMenuByStr(pTitle,tNum,pMenuText,pUnifiedFunc,TimeOutMs);
+	return pGuiFun->CreateMenuByStr(pTitle,tNum,pMenuText,(void*)pUnifiedFunc,TimeOutMs);
 }
 
 //====================================================================
@@ -39,7 +39,7 @@ int APP_CreateNewMenuByStruct(char *pTitle,int tNum,CMenuItemStru *pMenuAll,int 
 //---------------------------------------------------------------
 int APP_CreateNewMenuByList(char* pTitle,CMenuListPar* pMenulist,int TimeOutMs)
 {
-	return pGuiFun->CreateMenuByList(pTitle,pMenulist,TimeOutMs);
+	return pGuiFun->CreateMenuByList(pTitle,(void*)pMenulist,TimeOutMs);
 }
 
 //====================================================================
@@ -48,9 +48,9 @@ int APP_CreateNewMenuByList(char* pTitle,CMenuListPar* pMenulist,int TimeOutMs)
 //输入数据:type 功能类型,pFunc功能执行函数，pFunTitle 功能标题。
 //输出数据:无
 //---------------------------------------------------------------
-void APP_AddCurrentMenuOtherFun(UI_MENU_ADD_TYPE type,APP_HANDLE pFunc,const char *pFunTitle)
+void APP_AddCurrentMenuOtherFun(UI_MENU_ADD_TYPE type,void* pFunc,const char *pData)
 {
-	pGuiFun->AddCurrentMenuOtherFun(type,pFunc,pFunTitle);
+	pGuiFun->AddCurrentMenuOtherFun(type,pFunc,pData);
 }
 
 //====================================================================
@@ -67,7 +67,7 @@ int APP_ShowMenuProsse(void)
 
 int APP_ShowFixedMenu(char* pTitle,const FixedMenuUITable *pFixedMenu,void* pTagFunc)
 {
-	return pGuiFun->FixedMenu(pTitle,pFixedMenu,pTagFunc);
+	return pGuiFun->FixedMenu(pTitle,(void*)pFixedMenu,pTagFunc);
 }
 
 

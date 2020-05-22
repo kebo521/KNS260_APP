@@ -142,9 +142,6 @@
   </group>
   <group>
     <name>lib</name>
-    <file>
-      <name>$PROJ_DIR$\..\lib\app.a</name>
-    </file>
   </group>
 </project>
 

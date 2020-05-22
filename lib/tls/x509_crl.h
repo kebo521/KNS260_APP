@@ -1,4 +1,4 @@
-/**
+/*
  * \file x509_crl.h
  *
  * \brief X.509 certificate revocation list parsing
