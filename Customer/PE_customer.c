@@ -19,8 +19,11 @@ TERM_PAR    Term_Par;
 
 void TermParSetDefault(void)
 {
+	TRACE("test...11\r\n");
 	CLEAR(Term_Par);
+	TRACE("test...12\r\n");
 	API_strcpy(Term_Par.ServerIp,"113.105.146.93");
+	TRACE("test...13\r\n");
 	API_strcpy(Term_Par.ServerPort,"8888");
 	API_strcpy(Term_Par.Apn,"CMNET");
 	API_strcpy(Term_Par.password, "888888");

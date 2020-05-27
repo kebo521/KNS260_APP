@@ -61,29 +61,21 @@ int app_main(int argv, const char * args)
 #pragma section = ".bss"
 void Init_RamData(void)
 {
-    u32 len;									
-    u8 *bss_start,			*bss_end;						
-    u8 *data_ram, 			*data_rom,		*data_rom_end;		
-	data_ram 		= __section_begin(".data");
-	data_rom		= __section_begin(".data_init");
-	data_rom_end	= __section_end(".data_init");
-	len 			= data_rom_end - data_rom;
-	TRACE("data_ram1[%x][%X,%X][%x]\r\n",data_ram,data_rom,data_rom_end,len);
-	if(data_ram == NULL||data_rom ==NULL||data_rom_end == NULL) return ;
-	while (len--)	// Copy initialized data from ROM to RAM 
+    u8 *destin,*source,*end;		
+	destin 		= __section_begin(".data");
+	source		= __section_begin(".data_init");
+	end			= __section_end(".data_init");
+	if(destin == NULL||source ==NULL||end == NULL) return ;
+	while (source < end)	// Copy initialized data from ROM to RAM 
 	{
-		TRACE("lenD[%d]\r\n",len);
-		*data_ram++ = *data_rom++;
+		*destin++ = *source++;
 	}
-	bss_start 	= __section_begin(".bss");
-	bss_end 	= __section_end(".bss");
-    len 			= bss_end - bss_start;
-	TRACE("data_zero[%X,%X][%x]\r\n",bss_start,bss_end,len);
-	if(bss_start == NULL||bss_end==NULL) return ;
-   	while(len--)	// Clear the zero-initialized data section
+	destin 	= __section_begin(".bss");
+	end 	= __section_end(".bss");
+	if(destin == NULL||end==NULL) return ;
+   	while(destin < end)	// Clear the zero-initialized data section
 	{
-		TRACE("lenZ[%d]\r\n",len);
-		*bss_start++ = 0;
+		*destin++ = 0;
 	}
 }
 
@@ -102,6 +94,7 @@ API_SDK_INTERFACE* 	pSdkFun;
 #pragma location = ".code_entry"
 int __startup_appmain(APP_INTERFACE * pRunTime, int argv, const char * args) 
 {
+	Init_RamData();
 	memcpy(&api_SysFun,pRunTime->sys,sizeof(API_SDK_Def));
 	pFileFun = (API_FILE_Def*)pRunTime->file;
 	pFontFun = (API_FONT_Def*)pRunTime->font;
@@ -112,7 +105,6 @@ int __startup_appmain(APP_INTERFACE * pRunTime, int argv, const char * args)
 	pSdkFun = (API_SDK_INTERFACE*)pRunTime->sdk;
 	TRACE_HEX("__startup_appmain InterfaceVer",pRunTime->Mask,4);
 	APP_ShowMsg("全局变量","初始化...",8000);
-	Init_RamData();
 	TRACE("startup_appmain [%d,%d,%d]\r\n",a345,b234,c455);
 	return app_main(argv,args);
 }

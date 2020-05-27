@@ -1,0 +1,16 @@
+1、将对应的应用放在app 文件夹中。
+2、配置好app.ini 文件，主控应用为：\hd\tms，客户应用为：\hd\app，其它为参数(路径名不得超过16个字节)。
+3、双击运行app.cmd，生成的签名应用包会存放在：\app\app_sign.ksp中。
+4、本地更新双击运行：pushAPP.cmd，再重起终端。
+5、远程更新，将app_sign.ksp提交到TMS平台(可更新对象：主控应用，客户应用，终端参数(图片、字库、转码文件等))。
+
+配置说明：
+调至版配置文件为：app_d.ini
+右击编辑开打文本，修改[KAPP]上的选项，
+标签：TAG，		（客户标识）
+英文名：NAME_EN，		（客户英文名）
+中文名：NAME_CN，	（客户名称）
+SDK版本：NEED_SDK_VER，	（不需要修改）
+应用版本：APP_VERSION	（与应用程序中的版本保持一致）
+应用日期：APP_DATATIME	（发布时间YYYY-MM-DD HH:MM:SS）
+app_r.ini

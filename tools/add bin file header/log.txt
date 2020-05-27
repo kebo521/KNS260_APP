@@ -1,2 +1,0 @@
-Length is :0
-argument num is not 4 
