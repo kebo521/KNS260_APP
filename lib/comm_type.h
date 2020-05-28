@@ -86,6 +86,7 @@ typedef 	int (*R_PFUNC)(void);
 #define API_strcpy		strcpy
 #define API_strcmp		strcmp
 #define API_strcat		strcat
+#define API_strncpy		strncpy
 #define API_memcpy		memcpy
 #define API_memcmp		memcmp
 #define API_memset		memset

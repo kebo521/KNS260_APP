@@ -25,6 +25,7 @@
 #define FASTBOOT_RUNNING	0
 #define FASTBOOT_STOP		1
 
+/*
 //#define API_sprintf  	sprintf
 //#define API_memcpy        memcpy
 //#define API_strcpy        strcpy
@@ -37,7 +38,7 @@
 //#define API_strlen        strlen
 //#define API_toupper       toupper
 #define API_atoi			atoi
-
+*/
 //================================================
 #define RET_OK					0
 #define RET_ERR					-1

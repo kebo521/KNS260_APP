@@ -63,6 +63,26 @@ typedef struct _GuiWindow{
 	A_RGB* 		widget;	//用结构体后面的空间不需要释放，Window 鍏宠仈鐢诲竷鎸囬拡
 } GuiWindow,*LPGuiWindow;
 //extern GuiWindow UI_screen;
+//===============小图片小压缩==============
+typedef struct{
+	u8		w,h;
+	u8		byteLine;	//单行字节数
+	u8		MaxIn;		//单像素字节数
+	A_RGB	Index[16];
+	//u8 bitData[0];
+} buffmap_bit;
+
+//==============大图片高压缩==================
+typedef struct{
+	char head[4];	//"clz"
+	u16 w,h;
+	u8	sf;		//扫描方向,01 横向，02 纵向，03 旋转
+	u8	cl;		//单像素字节数	
+	u16 IndexMax;	//
+	u32 idmax;	//idmax = 0,没有索引
+	u32 rgbId[0];
+	//bitmap_term data[0];
+} filemap_FZ;
 
 
 typedef struct _API_UI	
@@ -89,6 +109,8 @@ typedef struct _API_UI
 	void (*ShowBottomProgress)(GuiWindow *,RECTL *,int,int);	//(GuiWindow *pWindow,RECTL *pRect,int thick,int ratio) ratio (0~100)
 	void (*ShowParMiddleSlide)(GuiWindow *,int); //ratio (0~100)
 
+	int (*mapbit_uzip)(buffmap_bit*,IMAGE*);	//(buffmap_bit* pInCLF,IMAGE *pOutMap) ,pOutMap->data 可以带空间，内部有判断
+	int (*map2_uzip)(filemap_FZ*,IMAGE*);	//(filemap_FZ* pInCLF,IMAGE *pOutMap)
 	int (*bitmapLoad)(const char*,IMAGE*);	//(const char* filename,IMAGE *pOutMap)	//打开图片文件
 	void (*bitmapDestroy)(IMAGE*);	//(IMAGE* pBitMap)
 }API_UI_Def;

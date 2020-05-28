@@ -21,12 +21,9 @@ typedef struct
 int app_main(int argv, const char * args)
 {
 	TRACE("app_main argv[%d],args[%x]\r\n",argv,args);
-	APP_ShowMsg("测试应用","启动中...",2000);
 	TermParLoad();
-	APP_ShowMsg("测试应用","参数初始化...",2000);
 	TRACE("app_main 2\r\n");
 	MachDatainit();
-	APP_ShowMsg("测试应用","参数初始化2..",2000);
 	TRACE("app_main 3\r\n");
 	ReadTradeRecordToFile();
 	TRACE("app_main 4\r\n");
@@ -104,7 +101,6 @@ int __startup_appmain(APP_INTERFACE * pRunTime, int argv, const char * args)
 	pTlsFuntion= (API_TLS_INTERFACE*)pRunTime->tls;
 	pSdkFun = (API_SDK_INTERFACE*)pRunTime->sdk;
 	TRACE_HEX("__startup_appmain InterfaceVer",pRunTime->Mask,4);
-	APP_ShowMsg("全局变量","初始化...",8000);
 	TRACE("startup_appmain [%d,%d,%d]\r\n",a345,b234,c455);
 	return app_main(argv,args);
 }

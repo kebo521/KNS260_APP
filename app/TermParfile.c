@@ -22,7 +22,7 @@ int TermParLoad(void)
 	ret=APP_FileReadBuff(TermParfilePath,0,&Term_Par, sizeof(Term_Par));
 	if((ret != sizeof(Term_Par)) || (0!=API_strcmp(Term_Par.CustVer,CustomerVersion)))
 	{// 第一次开机创建文件
-		TRACE("Parinit::Term_Par Init[%d]sizeofTerm_Par[%d]",ret,sizeof(Term_Par));
+		TRACE("Parinit::Term_Par Init[%d]sizeofTerm_Par[%d]\r\n",ret,sizeof(Term_Par));
 		return TermParFactoryReset();
 	}
 	return 0;

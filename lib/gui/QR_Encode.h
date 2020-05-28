@@ -29,8 +29,8 @@ extern "C" {
 #if 0	
 
 	--<OEM Size>--
-	#define MAX_ALLCODEu16		3706			// ‘ƒR[ƒhƒ[ƒh”Å‘å’l
-	#define MAX_DATACODEu16	2956			// ƒf[ƒ^ƒR[ƒhƒ[ƒhÅ‘å’l(ƒo[ƒWƒ‡ƒ“40-L)
+	#define MAX_ALLCODEWORD		3706			// ‘ƒR[ƒhƒ[ƒh”Å‘å’l
+	#define MAX_DATACODEWORD	2956			// ƒf[ƒ^ƒR[ƒhƒ[ƒhÅ‘å’l(ƒo[ƒWƒ‡ƒ“40-L)
 	#define MAX_CODEBLOCK			153				// ƒuƒƒbƒNƒf[ƒ^ƒR[ƒhƒ[ƒh”Å‘å’l(‚q‚rƒR[ƒhƒ[ƒh‚ðŠÜ‚Þ)
 	#define MAX_MODULESIZE			177				// ˆê•Óƒ‚ƒWƒ…[ƒ‹”Å‘å’l
 
@@ -46,8 +46,8 @@ extern "C" {
 		// 49:Version=8,×î´ó×Ö·û=192(96¸öºº×Ö)
 
 	#define MAX_MODULESIZE			49				
-	#define MAX_ALLCODEu16		(MAX_MODULESIZE*20)	
-	#define MAX_DATACODEu16	(MAX_MODULESIZE*19)	
+	#define MAX_ALLCODEWORD		(MAX_MODULESIZE*20)	
+	#define MAX_DATACODEWORD	(MAX_MODULESIZE*19)	
 	#define MAX_CODEBLOCK			153	
 		
 	//106 1122222222222222222222222222222222233333333333333333333333333333333333333333333333334345444444444444444567
@@ -108,14 +108,14 @@ extern "C" {
 		// 20h‚Æ‚Ì˜_—˜a‚É‚æ‚è‹@”\ƒ‚ƒWƒ…[ƒ‹”»’èA11h‚Æ‚Ì˜_—˜a‚É‚æ‚è•`‰æiÅI“I‚É‚ÍBOOL’l‰»j
 	
 		int 	ncDataCodeu32Bit;					// ƒf[ƒ^ƒR[ƒhƒ[ƒhƒrƒbƒg’·
-		u8 		byDataCodeu32[MAX_DATACODEu16];	// “ü—Íƒf[ƒ^ƒGƒ“ƒR[ƒhƒGƒŠƒA
+		u8 		byDataCodeu32[MAX_DATACODEWORD];	// “ü—Íƒf[ƒ^ƒGƒ“ƒR[ƒhƒGƒŠƒA
 	
 		int 	ncDataBlock;
-		u8 		byBlockMode[MAX_DATACODEu16];
-		int 	nBlockLength[MAX_DATACODEu16];
+		u8 		byBlockMode[MAX_DATACODEWORD];
+		int 	nBlockLength[MAX_DATACODEWORD];
 	
 		int 	ncAllCodeWord;						// ‘ƒR[ƒhƒ[ƒh”(‚q‚rŒë‚è’ù³ƒf[ƒ^‚ðŠÜ‚Þ)
-		u8 		byAllCodeWord[MAX_ALLCODEu16];		// ‘ƒR[ƒhƒ[ƒhŽZoƒGƒŠƒA
+		u8 		byAllCodeWord[MAX_ALLCODEWORD];		// ‘ƒR[ƒhƒ[ƒhŽZoƒGƒŠƒA
 		u8 		byRSWork[MAX_CODEBLOCK];			// ‚q‚rƒR[ƒhƒ[ƒhŽZoƒ[ƒN
     }QR_DATA;
 	//extern QR_DATA 	QR_gData;

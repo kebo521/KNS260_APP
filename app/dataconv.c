@@ -1016,13 +1016,6 @@ int Conv_TimestampToDate(u32 timestampIn,int timeZone,DATE_TIME *pTimeOut)
 //=====================================================================================================
 
 
-char* API_strcpy(char* dst, const char* src)
-{
-	return strcpy(dst,src);
-
-}
-
-
 int API_sprintf(char* str, const char* format, ...)
 {
 	int ret;
