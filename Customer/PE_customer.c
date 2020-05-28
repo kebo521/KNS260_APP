@@ -19,59 +19,42 @@ TERM_PAR    Term_Par;
 
 void TermParSetDefault(void)
 {
-	TRACE("test...11\r\n");
 	CLEAR(Term_Par);
-	TRACE("test...12\r\n");
 	API_strcpy(Term_Par.ServerIp,"113.105.146.93");
-	TRACE("test...13\r\n");
 	API_strcpy(Term_Par.ServerPort,"8888");
 	API_strcpy(Term_Par.Apn,"CMNET");
 	API_strcpy(Term_Par.password, "888888");
 	Term_Par.volume = 7;
-	TRACE("test...3\r\n");
 
 	#ifdef HARD_WIFI
 	Term_Par.WifiOpen[0]=1;
 	#endif
 	API_strcpy(Term_Par.CustVer,  CustomerVersion);
-	TRACE("test...4\r\n");
 
 	// 主控默认设置为中文
 	API_SetLanguage(_LANG_ID_);
-	TRACE("test...5\r\n");
-
 	// 清流水
 	ClearTradeRecord();
-	TRACE("test...6\r\n");
 }
 
 // 客户区域进入函数
 void MachDatainit(void)
 {
-	TRACE("test...71\r\n");
 	CLEAR(g_ColData);
-	TRACE("test...722,%s\r\n",Term_Par.mch_id);
 	API_strcpy(g_ColData.mch_id,		Term_Par.mch_id);
-	TRACE("test...723\r\n");
 	API_strcpy(g_ColData.key,			Term_Par.mch_key);
 	API_strcpy(g_ColData.op_shop_id,	Term_Par.op_shop_id);
 	API_strcpy(g_ColData.op_user_id,	Term_Par.op_user_id);
-	TRACE("test...724\r\n");
 
 //	API_strcpy(g_ColData.merchantId, "181510000316");
 //	API_strcpy(g_ColData.keyFPS, "06221c2e1e44f4528b9668efb9f29d1d");
 	API_strcpy(g_ColData.merchantId,g_ColData.mch_id);
 	API_strcpy(g_ColData.keyFPS, g_ColData.key);
-	TRACE("test...72\r\n");
 
 	AudioSetVolume(Term_Par.volume);
-	TRACE("test...73\r\n");
 	InitElementValue();
-	TRACE("test...74\r\n");
 	GetTermSN();
-	TRACE("test...75\r\n");
 	UI_LoadTheme(&UI_WftTheme);
-	TRACE("test...76\r\n");
 }
 
 
@@ -218,6 +201,7 @@ int APP_TradeMainMenu(char* title)
 	};
 	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
 	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"PayCont.clz");
+	APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,(void*)APP_TermMenu,STR_PARAM_SETTINGS);
 	return 0;
 }
 

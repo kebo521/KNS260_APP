@@ -9,9 +9,7 @@
 //=====(TERM_PAR结构由客户区定义)===========
 int TermParFactoryReset(void)
 {
-	TRACE("test...1\r\n");
 	API_fremove(TermParfilePath);
-	TRACE("test...2\r\n");
 	TermParSetDefault();
 	return APP_FileSaveBuff(TermParfilePath,0,&Term_Par, sizeof(Term_Par));
 }
@@ -22,7 +20,6 @@ int TermParLoad(void)
 	ret=APP_FileReadBuff(TermParfilePath,0,&Term_Par, sizeof(Term_Par));
 	if((ret != sizeof(Term_Par)) || (0!=API_strcmp(Term_Par.CustVer,CustomerVersion)))
 	{// 第一次开机创建文件
-		TRACE("Parinit::Term_Par Init[%d]sizeofTerm_Par[%d]\r\n",ret,sizeof(Term_Par));
 		return TermParFactoryReset();
 	}
 	return 0;

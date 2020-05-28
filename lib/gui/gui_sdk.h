@@ -31,6 +31,10 @@ typedef struct
 	void (*ShowQrCode)(const char*,A_RGB );					//(const char* pInfo,A_RGB Color)
 	void (*ShowQrCodeRect)(RECTL*,const char*,A_RGB );
 
+	void (*ShowMapBz)(POINT *,buffmap_bit*);
+	void (*ShowMapZ)(POINT *,filemap_FZ*);
+	int (*ShowPicture)(RECTL*,const char *);	//(RECTL *pRect,const char *pfilePath)
+
 	void (*Edit_Prompt)(u32 ,char*,u32 ,char*); //(u32 tFrontTextType,char* pFrontTextBuf,u32 tAfterTextType,char* pAfterTextBuf)
 	void (*Edit_Control)(u32,char*,int,u32,u32); //(u32 tTextType,char* pTextDef,int tMaxLen,u32 tImeType,u32 tImeLimit)
 	void (*InputEdit)(char*,int,u32,Fun_ShowNum);	//(char* pStrDef,int tMaxLen,u32 Way,Fun_ShowNum pShow)
@@ -48,8 +52,6 @@ typedef struct
 	void (*AddCurrentMenuOtherFun)(int,void*,const char *);	//(UI_MENU_ADD_TYPE type,void* pFunc,const char *pData)
 	int (*DesignatMenuItem)(void*,char*);		//(void* pTagFunc,char *pTagTitle)
 	int(*ShowProsseMenu)(void);		
-				
-	int (*ShowPicture)(RECTL*,const char *);	//(RECTL *pRect,const char *pfilePath)
 	
 	void (*ShowBottomProgress)(int);			//(int ratio)
 	void (*ShowRect)(RECTL*,u16,A_RGB);	//(RECTL *pRect,u16 Width,A_RGB Color)

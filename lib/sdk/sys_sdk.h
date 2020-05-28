@@ -32,14 +32,14 @@ typedef struct
 	char Mask[4]; 	// "sdk"
 	int (*Init)(char*);	//
 	int (*Exit)(int);	//(int recode)
-	int (*GetTickCount)(void);		// return current ms
-	u8 (*IsTimeExpired)(int);		// EndtimeMs
+	u32 (*GetTickCount)(void);		// return current ms
+	u8 (*IsTimeExpired)(u32);		// EndtimeMs
 	void (*Sleep)(unsigned int);	//sleep Ms
 	void (*GetTime)(ST_TIME*);	//(ST_TIME *systime)
 	int (*SetTime)(ST_TIME*);
 
 	char* (*eStrstr)(char*, const char*);	//(char* src1, const char* src2) ret Pointer end 
-	void (*logSet)(LOG_T);					//(LOG_T CurrPrio)
+	void (*logSet)(LOG_T,int);					//(LOG_T CurrPrio,int clog) CurrPrio 调试级别，clog 是否阻塞
 	int (*Log)(LOG_T,const char*,...);		//(LOG_T Prio,const char *fmt,...)
 	void (*logHex)(LOG_T,char*,void*,int);	//(LOG_T Prio,char* msg,void* pBuff,int Len)
 	
@@ -55,7 +55,7 @@ typedef struct
 extern API_SDK_Def	api_SysFun;;
 
 
-#define LogSet(t)						api_SysFun.logSet(t)	
+#define LogSet(t,c)						api_SysFun.logSet(t,c)	
 #define LOG(t,...)						api_SysFun.Log(t, ## __VA_ARGS__)
 #define TRACE(...)						api_SysFun.Log(LOG_INFO, ## __VA_ARGS__)
 #define LOG_HEX(logT,msg,pBuff,Len)		api_SysFun.logHex(logT,msg,pBuff,Len)

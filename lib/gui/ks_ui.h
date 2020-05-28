@@ -109,9 +109,12 @@ typedef struct _API_UI
 	void (*ShowBottomProgress)(GuiWindow *,RECTL *,int,int);	//(GuiWindow *pWindow,RECTL *pRect,int thick,int ratio) ratio (0~100)
 	void (*ShowParMiddleSlide)(GuiWindow *,int); //ratio (0~100)
 
+	void (*bzMapShow)(GuiWindow *,POINT *,buffmap_bit*);	//(GuiWindow *pWindow,POINT *pStart,buffmap_bit* pbZmap)
+	void (*zMapshow)(GuiWindow *,POINT *,filemap_FZ*);	//(GuiWindow *pWindow,POINT *pStart,filemap_FZ* pInCLF)
+
 	int (*mapbit_uzip)(buffmap_bit*,IMAGE*);	//(buffmap_bit* pInCLF,IMAGE *pOutMap) ,pOutMap->data 可以带空间，内部有判断
 	int (*map2_uzip)(filemap_FZ*,IMAGE*);	//(filemap_FZ* pInCLF,IMAGE *pOutMap)
-	int (*bitmapLoad)(const char*,IMAGE*);	//(const char* filename,IMAGE *pOutMap)	//打开图片文件
+	int (*bitmapLoad)(const char*,IMAGE*);	//(const char* filename,IMAGE *pOutMap)
 	void (*bitmapDestroy)(IMAGE*);	//(IMAGE* pBitMap)
 }API_UI_Def;
 extern API_UI_Def*			pUiFun;

@@ -20,13 +20,9 @@ typedef struct
 
 int app_main(int argv, const char * args)
 {
-	TRACE("app_main argv[%d],args[%x]\r\n",argv,args);
 	TermParLoad();
-	TRACE("app_main 2\r\n");
 	MachDatainit();
-	TRACE("app_main 3\r\n");
 	ReadTradeRecordToFile();
-	TRACE("app_main 4\r\n");
 	//------------创建应用主线程----------
 	//customer_main(argv,args);
 	//APP_TradeMainMenu("主交易");
@@ -43,9 +39,7 @@ int app_main(int argv, const char * args)
 	
 	if(0 > SweepFlow(NULL))
 	{
-		TRACE("app_main 5\r\n");
 		APP_TradeMainMenu("主交易");
-		TRACE("app_main 6\r\n");
 		APP_ShowMenuProsse();
 	}
 		
@@ -76,10 +70,8 @@ void Init_RamData(void)
 	}
 }
 
-
-
-int a345=83,b234=64,c455=0;
 API_SDK_Def		api_SysFun;
+//API_FILE_Def	api_FileFun;
 API_FILE_Def*		pFileFun;
 API_FONT_Def* 		pFontFun;		//字库资源
 API_Even_Def* 		pEventFun;		//字库资源
@@ -100,8 +92,6 @@ int __startup_appmain(APP_INTERFACE * pRunTime, int argv, const char * args)
 	pGuiFun = (API_GUI_Def*)pRunTime->gui;
 	pTlsFuntion= (API_TLS_INTERFACE*)pRunTime->tls;
 	pSdkFun = (API_SDK_INTERFACE*)pRunTime->sdk;
-	TRACE_HEX("__startup_appmain InterfaceVer",pRunTime->Mask,4);
-	TRACE("startup_appmain [%d,%d,%d]\r\n",a345,b234,c455);
 	return app_main(argv,args);
 }
 
