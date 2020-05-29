@@ -124,6 +124,7 @@ typedef struct
 	void* (*JsonLoad)(char*,char*);	//(char *pIndata,char* pEnd)
 	void* (*JsonGetValue)(void*,char*,u8 *); //(dfJsonTable *pStart,char* pKey,u8 *pType)
 	void (*JsonDestroy)(void *);	//(dfJsonTable *pTable)
+	int (*NetInstallAPP)(char*);	//(char *pTitle)
 }API_USE_Def;
 
 typedef struct 

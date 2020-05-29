@@ -16,7 +16,7 @@
 
 #define RGB565(r,g,b)		((((b)&0xF8)<<8)|(((g)&0xFC)<<3)|((r)>>3))	//RGB24真彩转565色彩,色彩丢失，地位不保留
 
-#define RGB565_PARENT		0xFF000000
+#define RGB565_PARENT		0x00000000
 
 
 #define TIMED_REFRESH		0

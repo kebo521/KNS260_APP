@@ -475,17 +475,19 @@ int APP_EditSum(char* pTitle,char TitleFlag,char* pOutStr,int timeOutMs)
 	Rect.width	= UI_MAP_TITLE_W;
 	Rect.height = UI_MAP_TITLE_H;
 	if(TitleFlag=='D')
-		UI_ShowPictureFile(&Rect,"InSumTd.clz");
+		ret=UI_ShowPictureFile(&Rect,"InSumTd.clz");
 	else if(TitleFlag=='R')
-		UI_ShowPictureFile(&Rect,"InSumTr.clz");
+		ret=UI_ShowPictureFile(&Rect,"InSumTr.clz");
 	else if(TitleFlag=='S')
-		UI_ShowPictureFile(&Rect,"InSumTs.clz");
+		ret=UI_ShowPictureFile(&Rect,"InSumTs.clz");
 	else if(TitleFlag=='Q')
-		UI_ShowPictureFile(&Rect,"InSumTq.clz");
+		ret=UI_ShowPictureFile(&Rect,"InSumTq.clz");
+	if(ret) return -1;	//没有图片返回
 
 	Rect.top	= UI_MAP_CONT_Y;
 	Rect.height = UI_MAP_CONT_H;
-	UI_ShowPictureFile(&Rect,"InSumE.clz");
+	ret=UI_ShowPictureFile(&Rect,"InSumE.clz");
+	if(ret) return -1;	//没有图片返回
 	API_GUI_InputEdit(pOutStr,7,IME_SUM,UI_EditShowMoney);
 	API_GUI_Show();
 	while(1)
@@ -522,7 +524,8 @@ int APP_OperEdit(char* pTitle,char* pOutStr,int Min,int Max,int timeOutMs)
 	Rect.top	= UI_MAP_TITLE_Y;
 	Rect.width	= UI_MAP_TITLE_W;
 	Rect.height = UI_MAP_TITLE_H;
-	UI_ShowPictureFile(&Rect,"operTi.clz");
+	ret=UI_ShowPictureFile(&Rect,"operTi.clz");
+	if(ret) return -1;	//没有图片返回
 
 	Rect.top	= UI_MAP_CONT_Y;
 	Rect.height = UI_MAP_CONT_H;
