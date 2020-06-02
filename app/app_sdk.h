@@ -113,7 +113,8 @@ extern void API_SetLanguage(int language);
 
 extern int AudioSetVolume(int volume);
 extern int AudioGetVolume(void);
-extern int APP_TTS_PlayText(const char *format,...);
+#define	APP_TTS_PlayText	pSdkFun->app->TTS_PlayText
+//extern int APP_TTS_PlayText(const char *format,...);
 extern int APP_AudioDtmfPlay(u8 tone,u8 time100Ms);
 
 //AudioSetVolume

@@ -873,31 +873,9 @@ void API_SetLanguage(int language)
 	pGuiFun->SetLanguage(language);
 }
 
-u8	mAudioPlayType;
-int APP_TTS_PlayText(const char *format,...)
-{	
-	va_list arg;	
-	char str[128];
-	if(mAudioPlayType==1)
-	{
-		mAudioPlayType=0;
-	//	AudioDtmfAbort();
-	}
-	
-	va_start( arg, format );
-	vsnprintf(str,sizeof(str),format,arg);
-	va_end(arg);
-	mAudioPlayType=1;
-//	return TTS_PlayText((uint8 *)str, API_strlen(str));
-        return 0;
-}
+
 int APP_AudioDtmfPlay(u8 tone,u8 time100Ms)
 {
-	if(mAudioPlayType == 0)
-	{
-		mAudioPlayType=1;
-		//return AudioDtmfPlay((MERCURY_DTMF_TONE_ID_E)tone,time100Ms);
-	}
 	return 0;
 }
 
