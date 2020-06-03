@@ -126,6 +126,9 @@ typedef struct
 	void (*JsonDestroy)(void *);	//(dfJsonTable *pTable)
 	int (*NetInstallAPP)(char*);	//(char *pTitle)
 	int (*TTS_PlayText)(const char *,...);	//(const char *format,...)
+	int (*Dtmf_Play)(int,int);	//(int tone,int timeMs)	frequency = 1000 + tone*100
+	int (*AudioGetVolume)(void);		//0,20,40,60,80,100
+	void (*AudioSetVolume)(int);	//0,20,40,60,80,100
 }API_USE_Def;
 
 typedef struct 

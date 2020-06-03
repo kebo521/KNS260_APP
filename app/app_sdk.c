@@ -876,16 +876,16 @@ void API_SetLanguage(int language)
 
 int APP_AudioDtmfPlay(u8 tone,u8 time100Ms)
 {
-	return 0;
+	return pSdkFun->app->Dtmf_Play(tone,time100Ms*10);
 }
 
-int AudioSetVolume(int volume)
+void AudioSetVolume(int volume)
 {
-	return 0;
+	pSdkFun->app->AudioSetVolume(volume);
 }
 int AudioGetVolume(void)
 {
-	return 0;
+	return pSdkFun->app->AudioGetVolume();
 }
 
 

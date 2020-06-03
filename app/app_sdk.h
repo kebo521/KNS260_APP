@@ -111,7 +111,7 @@ extern void API_SetLanguage(int language);
 //#define 	APP_TTS_PlayText 	pSdkFun->sdk->TtsPlay
 //#define 	APP_AudioDtmfPlay 	pSdkFun->sdk->DtmfPlay
 
-extern int AudioSetVolume(int volume);
+extern void AudioSetVolume(int volume);
 extern int AudioGetVolume(void);
 #define	APP_TTS_PlayText	pSdkFun->app->TTS_PlayText
 //extern int APP_TTS_PlayText(const char *format,...);
