@@ -95,16 +95,19 @@ typedef struct
 
 	int (*PriKey_Public)(char *,int ,unsigned char*,unsigned char*);	//(char *pPriKey,int keyLen,u8 *pInData,u8* pOutData)
 	int (*PubKey_Public)(char *,int ,unsigned char*,unsigned char*);	//(char *pPubKey,int keyLen,u8 *pInData,u8* pOutData)
+
+	int (*pkcs1_decrypt)(mbedtls_rsa_context*,int,int,const unsigned char*,unsigned char*, size_t*,size_t);	//(mbedtls_rsa_context *ctx,int mode,int padding,const unsigned char *input,unsigned char *output, size_t *olen, size_t osize)
+	int (*pkcs1_encrypt)(mbedtls_rsa_context*,int,int,const unsigned char *,size_t,unsigned char*);	//(mbedtls_rsa_context *ctx,int mode,int padding,const unsigned char *input,size_t ilen,unsigned char *output)
 }API_RSA_Def;
 
 
 typedef struct  
 {
-	char 	Mask[4]; 	// "PK"
+	char*	pMask;		// "PK"
 	void    (*pk_init)(mbedtls_pk_context *);
 	void 	(*pk_free)(mbedtls_pk_context *);
-	int 	(*pk_decrypt)( mbedtls_pk_context *,unsigned char *,size_t,unsigned char *,size_t *,size_t);
-	int 	(*pk_encrypt)( mbedtls_pk_context *,unsigned char *,size_t,unsigned char *,size_t *,size_t);
+	int 	(*pk_decrypt)(mbedtls_pk_context *,int,unsigned char *,size_t,unsigned char *,size_t *,size_t);	//( mbedtls_pk_context *ctx,int padding,unsigned char *input, size_t ilen,unsigned char *output, size_t *olen, size_t osize)
+	int 	(*pk_encrypt)(mbedtls_pk_context *,int,unsigned char *,size_t,unsigned char *,size_t *,size_t);	//( mbedtls_pk_context *ctx,int padding,unsigned char *input, size_t ilen,unsigned char *output, size_t *olen, size_t osize)
 	int 	(*pk_sign)(mbedtls_pk_context *,mbedtls_md_type_t,int,unsigned char *,size_t,unsigned char *,size_t *);
 	int 	(*pk_verify)(mbedtls_pk_context *,mbedtls_md_type_t,int,unsigned char *,size_t,unsigned char *, size_t);
 	int 	(*pk_parse_key)(mbedtls_pk_context *,const unsigned char *,size_t ,const unsigned char *,size_t);
