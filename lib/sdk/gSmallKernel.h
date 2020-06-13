@@ -38,7 +38,7 @@ extern void gRemoveFunctional(PFUNC pTarget);
 extern void gKernel_sleep(int timeMs);
 
 //内核定时器(定时其间还在执行其它任务)
-extern int gKernelTimes(R_PFUNC pfTime,R_PFUNC pRfunc);
+extern int gKernelTimes(R_PFUNC pRfunc);
 
 extern void gEndKernel(void);
 

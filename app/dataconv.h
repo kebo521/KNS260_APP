@@ -17,29 +17,31 @@
 	{
 		char	*pkey;
 		void	*pValue;
-		u16		dType,vaNum;
+		u16 	dType,vaNum;
 	}dfJsonItem;
 
 	typedef struct _dfJsonTable
 	{
 		struct _dfJsonTable *pNext;
-		u16			sLen,Total;
+		u16 		sLen,Total;
 		dfJsonItem	Item[1];
 	}dfJsonTable;
+		
 
+	//typedef void*  	dfJsonTable;	
 	//=======单层Json参数定义===========
 	typedef struct
 	{
 		char	*pID;
 		char	*pData;
-	//	u16		dType,daLen;
 	}sIdDataItem;
 
-	typedef struct
+	typedef struct _sIdDataTable
 	{
+		struct _sIdDataTable *pPrevious;	//回退指针
 		char		*pRecvData;
 		u16			sLen,Total;
-		sIdDataItem Item[1];
+		sIdDataItem Item[0];
 	}sIdDataTable;
 
 	//#include  "type.h"
@@ -79,7 +81,6 @@
 	extern u8 Conv_BcdToHex(u8 Bcd);
 	extern int Conv_StrToLong(char* number);
 //	extern void Conv_FomartByteStr(u8 *s,u8 len);
-	extern void String_Copy(u8* buf,u8* sBuf,u16 len);
 	extern u32 Conv_StrToNum(u8* strbuf,u8 Inlen);
 	extern void Conv_NumToStrRight(u32 InNum,u8 Outlen,u8* OutBuf);
 	extern void Conv_NumToStrLeft(u32 InNum,u8* OutBuf);
@@ -89,17 +90,19 @@
 	extern void Conv_UpperToLowercase(char* pBuff,int Len);
 	extern void ArrayStringGroup(const char* pStringGroup[],u16 MaxNum,u16 *pArrayIndexTable);
 	extern char *Conv_SetPackageHttpPOST(char* pPostStr,char* pPostID,char *pInData);
+	extern char *Conv_SetPackageJson(char* pPostStr,char* pPostID,char *pInData);
 	extern char *Conv_SetPackageHttpGET(char* pGetStr,char* pPostID,char *pInData);
-	extern char *Conv_Strcpy(char* pOut,const char* pIn);
+	extern char *eStrcpy(char* destination,const char* source);
 	extern void Conv_U32memcpy(u32* pOut,u32* pIn,int len);
 
 	extern char* tRChar(const char* pfPath, const char cDim);
 	extern u8 Conv_HttpGetName(char* pOutName,const char* pInAddre);
 	extern char* Conv_HttpPost_SetHead(char * url,char *pBuffOut);
+	extern char* Conv_Post_SetHead(char * url,char *pContentType,char *pBuffOut);
 	extern char* Conv_HttpPost_SetData(char *param, char *pBuffOut);	
 	//====================单层JSON处理======================================
 	extern sIdDataTable* Conv_SingleJSON_GetMsg(char *pIndata,char* pEnd);
-	extern void ArrayStringIdGroup(sIdDataTable *pStart);
+	//extern void ArrayStringIdGroup(sIdDataTable *pStart);
 	extern int Conv_Sign_Check(sIdDataTable *pStart,const char* KeyName,char* KeyData);
 	extern char* Conv_GetParFindID(sIdDataTable *pStart,char* pPostID);
 	#define Conv_SingleJSON_free(pTable)	{free(pTable); pTable=NULL}
@@ -113,21 +116,8 @@
 	extern void APP_GetRand(u8 *pOutRand,int RandLen);
 
 	//========================时间戳与标准时间转换=========================
-	//◎时间
-	typedef struct
-	{
-		int	Year; 	// The number of years						range 1900 to xxxx
-		int	Month;	// The number of months,					range 1 to 12
-		int	Day;		// The day of the month,					range 1 to 31
-		int	Hour; 	// The number of hours past midnight,		range 0 to 23
-		int	Min;		// The number of minutes after the hour,	range 0 to 59
-		int	Sec;		// The number of seconds after the minute,	range 0 to 59, (60 to allow for leap seconds)
-		int MSec; 	// The number of MSec after the minute, 	range 
-		int	WeekDay;	// The number of days since Sunday, 		range 0 to 6
-	//	int   YearDay;	// The number of days since January 1,		range 0 to 365
-	}DATE_TIME;
-	extern int Conv_DateToTimestamp(DATE_TIME *pTimeIn,int timeZone,u32 *pTimestampOut);
-	extern int Conv_TimestampToDate(u32 timestampIn,int timeZone,DATE_TIME *pTimeOut);
+	extern int Conv_DateToTimestamp(ST_TIME *pTimeIn,int timeZone,u32 *pTimestampOut);
+	extern int Conv_TimestampToDate(u32 timestampIn,int timeZone,ST_TIME *pTimeOut);
 
 	//extern void* API_memcpy(void *dst, const void *src, int count);
 	//extern void* API_memset(void* dst, int value, int count);

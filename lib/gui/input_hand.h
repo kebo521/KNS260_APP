@@ -40,7 +40,7 @@ typedef enum
 	K_F3			=0x13,			//!< 功能3
 	K_F4			=0x14,			//!< 功能4
 									
-	K_PWR			=0x91,			//!< 电源
+	K_PWR			=K_CANCEL,			//!< 电源
 									
 	K_INVALID		=0x00			//!< 无效按键
 }KEY_VAL;							//V3按键定义

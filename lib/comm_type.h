@@ -115,8 +115,8 @@ typedef struct
 {
 	u32 uFileSize;
 	u32 uOffset;
-	u8	upFlag;
-	char sAppVer[15];
+	u8	upFlag,comtype;
+	char sAppVer[16];
 	u8	sFileMd5[20];
 	char sFileNo[64];
 }tData_UpIni;

@@ -1,6 +1,5 @@
 #include "communal.h"
 
-#ifdef HARD_WIFI
 
 int WIFI_GetVersion(char* sVersion,int sizeVer)
 {
@@ -302,6 +301,4 @@ int APP_WIFI_EN(char* pTitle)
 	}
 	return 0;
 }
-
-#endif
 

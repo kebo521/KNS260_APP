@@ -7,8 +7,8 @@ enum NET_STATE
 		
 	NET_WLAN_CLOSE		=0x0000,
 	NET_WLAN_DisHost	=0x0010,	//DIS Connect
-	NET_WLAN_CntHost	=0x0011,
-	NET_WLAN_cetCenter	=0x0012,
+	NET_WLAN_CntHost	=0x0001,
+	NET_WLAN_cetCenter	=0x0003,
 
 	STATE_NET_2G		=0x2000,
 	STATE_NET_3G		=0x3000,
@@ -16,18 +16,8 @@ enum NET_STATE
 	STATE_NET_5G		=0x5000,
 
 	STATE_NET_CLOSE		=0x0000,
-	STATE_NET_DisPDP	=0x0800,
-	STATE_NET_CntPDP	=0x0900,
-	STATE_NET_CntCenter	=0x0B00,
-
-	//---net->Msg_Process 返回异步通讯消息表-------
-	NET_MSG_UNKNOWN			=0x20,
-	NET_MSG_CONNECT			=0x23,
-	NET_MSG_SEND			=0x24,
-	NET_MSG_RECV			=0x25,
-	NET_MSG_DISCONNECT		=0x26,
-	NET_MSG_END				=0x27,
-	NET_MSG_FAIL		  =0x0100,	//以或的形试存在
+	STATE_NET_CntPDP	=0x0100,
+	STATE_NET_CntCenter	=0x0300,
 };	
 
 typedef struct
@@ -58,6 +48,7 @@ extern int OpenAPN(char* pTitle);
 extern  int Tcp_Link(char* pTitle);
 extern int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull);
 extern int Tcp_Close(char* pTitle);
+extern void Tcp_LoadMsg(const char* pHttpAdderr,u16 port);
 
 
 typedef struct	

@@ -265,7 +265,10 @@ int APP_ShowTradeMsg(char *pShowMsg,int tTimeOutMS)
 	Rect.top	= SCREEN_APP_Y;
 	Rect.width	= SCREEN_APP_W;
 	Rect.height = SCREEN_APP_H;
-	UI_ShowPictureFile(&Rect,"Empty.clz");
+	if(UI_ShowPictureFile(&Rect,"Empty.clz"))
+	{
+		return APP_ShowMsg("交易信息",pShowMsg,tTimeOutMS);
+	}
 	if(pShowMsg)
 	{
 		Rect.left	= UI_TRADE_MSG_X;
@@ -839,6 +842,12 @@ int  API_TimeCurrMS(void)
 	return api_SysFun.GetTickCount();
 }
 
+u32 OsGetTimeStamp(void)
+{
+	return 12312312;
+}
+
+
 void OsSleep(unsigned int Ms)
 {
 	 api_SysFun.Sleep(Ms);
@@ -887,5 +896,4 @@ int AudioGetVolume(void)
 {
 	return pSdkFun->app->AudioGetVolume();
 }
-
 

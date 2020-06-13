@@ -65,10 +65,10 @@ typedef struct
 	int (*remove)(const char*);		//(const char *path)
 	
 	int (*fileFomat)(const char*);	//(const char* pKey)
-
-	int (*RecordInit)(void *,int);	//(void *pData,int size)
-	int (*RecordRead)(void *);		//(void *pData)
-	int (*RecordWrite)(void *);		//(void *pData)
+	//--后进先出 队列记录器，独立FLASH操作文件系统之外-------------------
+	int (*LifoRecordInit)(void *,int);	//(void *pData,int size)
+	int (*LifoRecordRead)(void *,int);	//(void *pData,int Index)
+	int (*LifoRecordWrite)(void *);		//(void *pData)
 }API_FILE_Def;
 extern API_FILE_Def*		pFileFun;
 //=============证通文件系统接口========================

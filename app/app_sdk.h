@@ -95,7 +95,8 @@ extern int APP_InputMerchSN(char flagd,char* pOutStr,int MinLen,int Maxlen,int t
  * 
  * @return 系统当前毫秒数
  */	
-extern int  API_TimeCurrMS(void);	
+extern int  API_TimeCurrMS(void);
+extern u32  OsGetTimeStamp(void);
 extern int OsSetTime(ST_TIME *Time);
 extern void OsGetTime(ST_TIME *Time);
 extern void OsSleep(unsigned int Ms);
@@ -105,6 +106,11 @@ extern int APP_GetHardMsg(u8 type,void *pOut,int OutSize);
 extern int APP_SetHardMsg(u8 type,void *pOut,int OutSize);
 
 extern void API_SetLanguage(int language);
+
+//==============库函数改进函数============================
+//extern char *API_eStrstr(char* src1, const char* src2);
+#define		API_eStrstr		api_SysFun.eStrstr
+
 
 //=================对语音播放增加参数控制，解决互斥问题=========================
 

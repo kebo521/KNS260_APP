@@ -31,6 +31,11 @@ int  Par_Set(void* pBuf,u16 tLen)
 	return APP_FileSaveBuff(TermParfilePath,(u8*)pBuf-(u8*)&Term_Par,pBuf,tLen);
 }
 
+//写入参数体中对应参数内容
+int  Par_SaveAll(void)
+{ 
+	return APP_FileSaveBuff(TermParfilePath,0,&Term_Par,sizeof(Term_Par));
+}
 
 //==========================交易记录==================================
 

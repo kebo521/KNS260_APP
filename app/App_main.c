@@ -23,27 +23,10 @@ int app_main(int argv, const char * args)
 	TermParLoad();
 	MachDatainit();
 	ReadTradeRecordToFile();
+
+	api_SysFun.logSet(LOG_DEBUG,1);
 	//------------创建应用主线程----------
-	//customer_main(argv,args);
-	//APP_TradeMainMenu("主交易");
-	//APP_ShowMenuProsse();
-	/*
-	 DisplayInit();
-    //DisplaySetColor(MERCURY_WHITE, MERCURY_BLACK);
-    DisplaySetScreenOffTimeout(0);//Always on
-    DisplayClearScreen();
-    DisplaySetBrightness(10);
-    DisplaySetDirection(DMDO_0);
-	*/
-	
-	
-	if(0 > SweepFlow(NULL))
-	{
-		APP_TradeMainMenu("主交易");
-		APP_ShowMenuProsse();
-	}
-		
-	return 0;
+	return customer_MainMenu("主交易");
 }
 
 

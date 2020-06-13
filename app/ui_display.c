@@ -31,6 +31,11 @@ void UI_DisplayInit(void)
 	UI_LoadTheme(&UI_comTheme);
 }
 
+//=========设置菜单界面显示多少行菜单项=================
+void UI_SetMenuItem(int num)
+{
+	pGuiFun->LoadWindow(pGuiFun->GetWindow(),num);
+}
 //=====================区域图片备份======================================
 RECTL tBitMapRect;
 A_RGB* pBitMapBuff=NULL;
@@ -502,6 +507,13 @@ int APP_ShowInfo(char *pTitle,char *pInfo,int timeOutMs)
 	return APP_WaitUiEvent(timeOutMs);
 }
 
+int APP_ShowInfoMsg(char *pTitle,char *pInfo,char *pAfterText,int timeOutMs)
+{
+	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL);
+	pGuiFun->OprInfo(pInfo,pAfterText);
+	pGuiFun->Show();
+	return APP_WaitUiEvent(timeOutMs);
+}
 
 void APP_HitMsg(const char* pMsg,int tTimeOutMS)
 {

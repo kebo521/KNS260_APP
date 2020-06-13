@@ -72,13 +72,8 @@ int Tcp_Link(char* pTitle)
 		APP_ShowWaitFor(NULL);//STR_NET_LINK_WLAN
 	if(TcpSaveFlag.port==0)
 	{
-		#ifdef CONNECT_MYSELF		//连接
 		TcpSaveFlag.port = HTTP_TRADE_PORT;
 		TcpSaveFlag.ENssL = Conv_HttpGetName(TcpSaveFlag.sHost,HTTP_TRADE_ADDERR);
-		#else						//间连
-		TcpSaveFlag.port = API_atoi(Term_Par.ServerPort);
-		TcpSaveFlag.ENssL = Conv_HttpGetName(TcpSaveFlag.sHost,Term_Par.ServerIp);
-		#endif
 	}
 	ret=pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
 	//--------------电量低限制交易--------------------------
@@ -114,6 +109,13 @@ int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull)
 int Tcp_Close(char* pTitle)
 {
 	return pSdkFun->net->Disconnect(0);
+}
+
+
+void Tcp_LoadMsg(const char* pHttpAdderr,u16 port)
+{
+	TcpSaveFlag.port = port;
+	TcpSaveFlag.ENssL = Conv_HttpGetName(TcpSaveFlag.sHost,pHttpAdderr);
 }
 
 
