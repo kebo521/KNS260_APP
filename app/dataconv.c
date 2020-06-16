@@ -1,4 +1,4 @@
-//===================================================================
+ //===================================================================
 //-------------------数据转换,打包服务------------------------------
 //===================================================================
 #include "communal.h"
@@ -931,140 +931,82 @@ char* Conv_GetParFindID(sIdDataTable *pStart,char* pPostID)
 	return NULL;
 }
 
+#if(1)
 //===多层JSON处理功能{"abb":"cdd","struct":{"abb":"cdd"}.....}===============
 //--注: pIndata不能是ROM空间，处理后会修改pIndata中的参数,
 //--    用完后需要Conv_JSON_free释放空间
 dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 {
-	dfJsonTable *pIdData;
-	dfJsonItem *pItem=NULL;
+	dfJsonTable *pCurr,*pOutJson=NULL;
+	dfJsonItem *pItem;
+	char*		pStrEnd;
 	u16 		colonCount,parenCount;
-	u16			ItemIndex,cycle;
+	u16 		ItemIndex,cycle;
 	//------------找到起点-----------------------
+	PARSE_NEXT_JSON_DATA:
 	parenCount=0;
-	while(pIndata < pEnd)
+	pStrEnd = pEnd;
+	while(pIndata < pStrEnd)
 	{
 		if(*pIndata == '{') 
 		{
 			parenCount++;
 			break;
 		}
-		if(*pIndata == '[') 
-		{
-			char *pKuoEnd;
-			u16 dkjs,dkNum;
-			pKuoEnd = pIndata;
-			parenCount=1;
-			dkjs=0;dkNum=0;
-			pKuoEnd++;
-			while(pKuoEnd < pEnd)
-			{
-				if(*pKuoEnd == '[')
-					parenCount++;
-				else if(*pKuoEnd == ']')
-				{
-					parenCount--;
-					if(parenCount == 0) break;
-				}
-				else if(*pKuoEnd == '{')
-					dkjs++;
-				else if(*pKuoEnd == '}')
-				{
-					dkjs--;
-					if(dkjs == 0)
-						dkNum++;
-				}				
-				pKuoEnd++;
-			}
-			if(parenCount==0 && dkNum > 0)
-			{
-				dfJsonTable *pNext=NULL;
-				char *pS,*pE;
-				pIndata++;
-				for(dkjs=0;dkjs<dkNum;dkjs++)
-				{
-					pS = NULL;
-					parenCount=0;
-					while(pIndata < pKuoEnd)
-					{
-						if(*pIndata == '{')
-						{
-							if(++parenCount == 1)
-								pS = pIndata;
-						}
-						else if(*pIndata == '}')
-						{
-							if(--parenCount == 0) break;
-						}
-						pIndata++;
-					}
-					pE = ++pIndata;
-					if(pS)
-					{
-						if(pNext==NULL)
-						{
-							pNext=Conv_JSON_GetMsg(pS,pE);
-							pIdData = pNext;
-						}
-						else 
-						{
-							pNext->pNext=Conv_JSON_GetMsg(pS,pE);
-							pNext=pNext->pNext;
-						}
-					}
-				}
-				return pIdData;
-			}
-		}
 		pIndata++;
 	}
-	if(parenCount!=1) return NULL;
+	if(parenCount!=1) 
+	{
+		TRACE("JSON_GetMsg Err,no { \r\n");
+		return pOutJson;
+	}
 	pIndata++;
 	//------------找到终点-----------------------
 	colonCount=0;
 	{
-		char *pE=pEnd;
-		pEnd=pIndata;
-		while(pEnd < pE)
+		char *pE=pStrEnd;
+		pStrEnd=pIndata;
+		while(pStrEnd < pE)
 		{
-			if(*pEnd == '{')
+			if(*pStrEnd == '{')
 				parenCount++;
-			else if(*pEnd == '}')
+			else if(*pStrEnd == '}')
 			{
 				if(--parenCount == 0) break;
 			}
-			else if(*pEnd == ':')
+			else if(*pStrEnd == ':')
 			{
-				if(parenCount == 1)	//-计算第一层参数总数-
+				if(parenCount == 1) //-计算第一层参数总数-
 					colonCount++;
 			}
-			pEnd++;
+			pStrEnd++;
 		}
 	}
 	if(parenCount)
 	{
 		TRACE("JSON_GetMsg ERR The {} number does not match[%d]\r\n",parenCount);
-		return NULL;
+		return pOutJson;
 	}
 	if(colonCount<1)
 	{
 		TRACE("GetMsg  The : number Err[%d]\r\n",colonCount);
-		return NULL;
+		return pOutJson;
 	}
-	*pEnd = '\0';
+	*pStrEnd = '\0';
 	//-----------申请对应空间----------------------
-	pIdData=(dfJsonTable*)malloc(sizeof(dfJsonTable)+(sizeof(dfJsonItem)*colonCount)); //+1 = +'\0';
-	pIdData->pNext= NULL;
-	pIdData->sLen = pEnd-pIndata;
+	pCurr=(dfJsonTable*)malloc(sizeof(dfJsonTable)+(sizeof(dfJsonItem)*colonCount)); //+1 = +'\0';
+	pCurr->pNext= NULL;
+	pCurr->sLen = pStrEnd-pIndata;
 	cycle=0;
 	ItemIndex=0;
-	while(pIndata < pEnd)
+	pItem = NULL;
+	while(pIndata < pStrEnd)
 	{
 		if(*pIndata == '\"')
 		{
 			if(cycle==0)	//0 strar
 			{
-				pItem=&pIdData->Item[ItemIndex++];
+				pItem=&pCurr->Item[ItemIndex++];
 				cycle++;	// 1-> IDStar
 			}
 			else if(cycle==2) // 2-> End ID
@@ -1097,7 +1039,7 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 			pKuoEnd = ++pIndata;
 			parenCount=1;
 			dkjs=0;dkNum=0;
-			while(pKuoEnd < pEnd)
+			while(pKuoEnd < pStrEnd)
 			{
 				if(*pKuoEnd == '[')
 					parenCount++;
@@ -1118,42 +1060,9 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 			}
 			if(parenCount==0 && dkNum > 0)
 			{
-				dfJsonTable *pNext=NULL;
-				char *pS,*pE;
-				for(dkjs=0;dkjs<dkNum;dkjs++)
-				{
-					pS = NULL;
-					parenCount=0;
-					while(pIndata < pKuoEnd)
-					{
-						if(*pIndata == '{')
-						{
-							if(++parenCount == 1)
-								pS = pIndata;
-						}
-						else if(*pIndata == '}')
-						{
-							if(--parenCount == 0) break;
-						}
-						pIndata++;
-					}
-					pE = ++pIndata;
-					if(pS)
-					{
-						if(pNext==NULL)
-						{
-							pNext=Conv_JSON_GetMsg(pS,pE);
-							pItem->pValue=pNext;
-						}
-						else 
-						{
-							pNext->pNext=Conv_JSON_GetMsg(pS,pE);
-							pNext=pNext->pNext;
-						}
-					}
-				}
 				pItem->vaNum= dkNum;
-				pItem->dType= ITEM_STRUCT;
+				pItem->dType= ITEM_ARRAY;
+				pItem->pValue=Conv_JSON_GetMsg(pIndata,pKuoEnd);
 			}
 			else
 			{
@@ -1161,8 +1070,9 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 				pItem->pValue=pIndata;
 				*pKuoEnd = '\0';
 			}
-			pIndata=pKuoEnd;
-			pIndata++;
+			pIndata= pKuoEnd;	//jup ']'
+			if(cycle == 5)
+				pIndata++;
 			cycle=0;  //0 strar
 		}
 		else if(*pIndata == ':')
@@ -1180,14 +1090,14 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 		}
 		else if(*pIndata == '{')
 		{
-			if(cycle==4 || cycle==5)	//cycle==4 为:{} 模式   , cycle==5 为:"{}" 模式
+			if(cycle==4 || cycle==5)	//cycle==4 为:{} 模式	, cycle==5 为:"{}" 模式
 			{
 				char *p;
 				p=pIndata;
 				p++; 
 				parenCount=1;
 				colonCount=0;
-				while(p < pEnd)
+				while(p < pStrEnd)
 				{
 					if(*p == '{')
 						parenCount++;
@@ -1218,8 +1128,8 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 				else
 				{
 					TRACE("JSON_GetMsg Key[%s],Get Value ERR \r\n",pItem->pkey);
-					free(pIdData);
-					return NULL;
+					free(pCurr);
+					return pOutJson;
 				}
 				pIndata=p;
 				if(cycle==5)
@@ -1252,14 +1162,22 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 		}
 		pIndata++;
 	}
-	pIdData->Total = ItemIndex;
-	return pIdData;
-}
-
-void aaaa()
-{
-
+	pCurr->Total = ItemIndex;
+	if(pOutJson == NULL)
+	{
+		pOutJson = pCurr;
+	}
+	else
+	{
+		dfJsonTable *pNext=pOutJson;
+		while(pNext->pNext)
+			pNext=pNext->pNext;
+		pNext->pNext = pCurr;
+	}
+	if((pIndata + 2) < pEnd)
+		goto PARSE_NEXT_JSON_DATA;
 	
+	return pOutJson;
 }
 
 /*
@@ -1289,7 +1207,6 @@ char* Conv_GetJsonValue(dfJsonTable *pStart,char* pKey,u8 *pType)
 				break;
 			src1++; src2++;
 		}
-		
 		if(*src2 == '\0')
 		{
 			if(*src1 == '\0')
@@ -1298,32 +1215,34 @@ char* Conv_GetJsonValue(dfJsonTable *pStart,char* pKey,u8 *pType)
 				{
 					*pType= pStart->Item[i].dType;
 				}
-				else if(pStart->Item[i].dType == ITEM_STRUCT)
+				else if(pStart->Item[i].dType >= ITEM_STRUCT)
 				{
 					TRACE("GetJsonStr[%s] dtype is[%d],pType is NULL,not return\r\n",pKey,pStart->Item[i].dType);
 					return NULL;
 				}
 				return pStart->Item[i].pValue;
 			}
-			else if(*src1 == '/')	//处理第二级
+			if(*src1 == '/')	//处理第二级
 			{
 				src1 ++ ;
-				if(*src1 != '\0'  && pStart->Item[i].dType == ITEM_STRUCT)
+				if(*src1 != '\0'  && pStart->Item[i].dType >= ITEM_STRUCT)
 				{
 					return Conv_GetJsonValue((dfJsonTable *)pStart->Item[i].pValue,src1,pType);
 				}
 				TRACE("GetJsonStr pKey[%s] '/' warning\r\n",pKey);
 				return pStart->Item[i].pValue;
 			}
-			else if(*src1 == '[')	//处理分级，
+			if(*src1 == '[')	//处理分级，
 			{//"abc/efg/hij[3]"
-				u16 index=0;
+				u16 num,nMax=0;
 				src1 ++;
+				//while(*src1 <= ' ') src1++;
 				while((*src1 >= '0') && (*src1 <= '9'))
 				{
-					index =index*10 + ((*src1)&0x0f);
+					nMax =nMax*10 + ((*src1)&0x0f);
 					src1++;
 				}
+				//while(*src1 <= ' ') src1++;
 				if(*src1++ != ']')
 				{
 					TRACE("GetJsonStr[%s] Format error,not return\r\n",pKey);
@@ -1331,29 +1250,30 @@ char* Conv_GetJsonValue(dfJsonTable *pStart,char* pKey,u8 *pType)
 				}
 				else
 				{
-					while(index--) 
+					dfJsonTable *pArray=(dfJsonTable *)pStart->Item[i].pValue;
+					for(num=0;num<nMax;num++)
 					{
-						if(pStart == NULL)
+						if(pArray==NULL)
 						{
-							TRACE("GetJsonStr[%s] Index[%d] NULL\r\n",pKey,index);
+							TRACE("pArray[%d,%d] is NULL\r\n",num,nMax);
 							return NULL;
 						}
-						pStart = pStart->pNext;
+						pArray = pArray->pNext;
 					}
-
-					if(pStart)
+					if(pArray)
 					{
-						if(*src1 == '/' && src1[1] != '\0')
+						if(*src1 == '/')
+							return Conv_GetJsonValue(pArray,++src1,pType);
+						else if(pType) 
 						{
-							if(pStart->Item[i].dType == ITEM_STRUCT)
-							{
-								return Conv_GetJsonValue((dfJsonTable *)pStart->Item[i].pValue,++src1,pType);
-							}
-							LOG(LOG_WARN,"GetJsonStr pKey[%s] '/' warning\r\n",pKey);
+							*pType= pStart->Item[i].dType;
+							return (char*)pArray;
 						}
-						return pStart->Item[i].pValue;
+						TRACE("pArray[%d]is NULL\r\n",num,nMax);
+						return NULL;
 					}
-					return NULL;
+					TRACE("pArray[%d]is [%x]\r\n",num,pArray);
+					return (char*)pArray;
 				}
 			}
 		}
@@ -1369,30 +1289,22 @@ void Conv_JSON_free(dfJsonTable *pTable)
 	dfJsonTable *pNext;
 	while(pTable)
 	{
+		//TRACE("JSON_free[%x]\r\n",pTable);
 		max=pTable->Total;
 		for(i=0;i<max;i++)
 		{
-			if(pTable->Item[i].dType == ITEM_STRUCT)
-			{
-				dfJsonTable *pCurr,*pNext;
-				pCurr=(dfJsonTable*)pTable->Item[i].pValue;
-				while(pCurr)
-				{
-					pNext = pCurr->pNext;
-					Conv_JSON_free(pCurr);
-					pCurr=pNext;
-				}
-			}
-			
+			if(pTable->Item[i].dType >= ITEM_STRUCT)
+				Conv_JSON_free((dfJsonTable*)pTable->Item[i].pValue);
 		}
 		pNext = pTable->pNext;
 		free(pTable);
 		pTable = pNext;
 	}
+	//TRACE("JSON_free Ok\r\n");
 }
 
 
-#if(0)
+#else 
 //===多层JSON处理功能{"abb":"cdd","struct":{"abb":"cdd"}.....}===============
 //--注: pIndata不能是ROM空间，处理后会修改pIndata中的参数,
 //--    用完后需要Conv_JSON_free释放空间

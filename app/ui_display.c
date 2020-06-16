@@ -12,14 +12,15 @@ UI_DisplayTheme tUI_Theme;
 //===========标准主题==========================
 const UI_DisplayTheme UI_comTheme=
 {
-	"按[0]键下翻页",
-	"按[8]键上翻页",
-	"[8]上翻页,[0]下翻页",
+	"按[↓]键下翻页",
+	"按[↑]键上翻页",
+	"↑]上翻页,↓]下翻页",
 
 	"Small_f.clz",
 	UI_EDIT_sMONEY_fW,
 	UI_EDIT_sMONEY_fH,
 };
+
 
 void UI_LoadTheme(const UI_DisplayTheme *pTheme)
 {
@@ -245,7 +246,7 @@ void UI_ShowSmallNum(RECTL *prclTrg,int flagMoney,char *pNum)
 		if(pNum[i]=='.')
 		{
 			Rect.width	= UI_EDIT_sMONEY_dW;
-			UI_ShowPictureFile(&Rect,"Small_d.bin");
+			UI_ShowPictureFile(&Rect,"Small_d.clz");
 			Rect.left	+= UI_EDIT_sMONEY_dW;
 		}
 		else 
@@ -490,6 +491,14 @@ void APP_ShowSta(char *pTitle,char *pMsg)
 	pGuiFun->Info(NULL,TEXT_ALIGN_CENTER|TEXT_VALIGN_CENTER,pMsg);
 	pGuiFun->Show();
 }
+
+void APP_ShowInfoSta(char *pTitle,char *pInfo,char *pAfterText)
+{
+	pGuiFun->CreateShowWindow(pTitle,TOK,TCANCEL);
+	pGuiFun->OprInfo(pInfo,pAfterText);
+	pGuiFun->Show();
+}
+
 
 int APP_ShowMsg(char *pTitle,char *pMsg,int timeOutMs)
 {

@@ -17,7 +17,7 @@ int TermParFactoryReset(void)
 int TermParLoad(void)
 {
 	int ret;
-	ret=APP_FileReadBuff(TermParfilePath,0,&Term_Par, sizeof(Term_Par));
+	ret=APP_FileReadBuff(TermParfilePath,0,&Term_Par,sizeof(Term_Par));
 	if((ret != sizeof(Term_Par)) || (0!=API_strcmp(Term_Par.CustVer,CustomerVersion)))
 	{// 第一次开机创建文件
 		return TermParFactoryReset();

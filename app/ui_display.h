@@ -4,16 +4,11 @@
 
 #define FONT_SIZE    			(24)    
 
-//---------全屏参数----------------------
-#define SCREEN_WIDTH		(320) 
-#define SCREEN_HEIGT		(240) 
-#define EFFECTIVE_X			(0) 
-#define EFFECTIVE_Y			(24)
 //---------应用使用的屏区域-------------------
 #define SCREEN_APP_X		0 
 #define SCREEN_APP_Y		0
-#define SCREEN_APP_W		(SCREEN_WIDTH) 
-#define SCREEN_APP_H		(SCREEN_HEIGT-EFFECTIVE_Y) 
+#define SCREEN_APP_W		(320) 
+#define SCREEN_APP_H		(240-24) 
 //-------图片标题与操作内容显示-------------------------------
 #define UI_MAP_TITLE_X		SCREEN_APP_X
 #define UI_MAP_TITLE_Y		SCREEN_APP_Y
@@ -229,6 +224,7 @@ extern void API_GUI_Draw565QRcode(RECTL* pRECTL,char *pInMsg,A_RGB fgColor);
 extern void API_GUI_Show(void);
 
 extern void APP_ShowSta(char *pTitle,char *pMsg);
+extern void APP_ShowInfoSta(char *pTitle,char *pInfo,char *pAfterText);
 //===========剧中显示内容=======
 extern int APP_ShowMsg(char *pTitle,char *pMsg,int timeOutMs);
 //===========左上角显示内容=======

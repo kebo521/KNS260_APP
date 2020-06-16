@@ -20,10 +20,10 @@ typedef struct
 
 int app_main(int argv, const char * args)
 {
+	UI_DisplayInit();
 	TermParLoad();
 	MachDatainit();
 	ReadTradeRecordToFile();
-
 	api_SysFun.logSet(LOG_DEBUG,1);
 	//------------创建应用主线程----------
 	return customer_MainMenu("主交易");

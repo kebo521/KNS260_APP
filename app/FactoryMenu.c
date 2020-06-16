@@ -638,14 +638,26 @@ int TEST_JSON(char *pTitle)
 			}
 			//---------------直接下标取值-------------------------
 			pBRCV=Conv_GetJsonValue(pFtable,"body/response/cbdjxxlist/v[0]/sbjbjgdm",NULL);
-			TRACE("body/response/cbdjxxlist/v[0]/sbjbjgdm1[%s]\r\n",pBRCV);
+			if(pBRCV)
+				TRACE("body/response/cbdjxxlist/v[0]/sbjbjgdm1[%s]\r\n",pBRCV);
+			else
+				TRACE("body/response/cbdjxxlist/v[0]/sbjbjgdm1[NULL]\r\n");
 			pBRCV=Conv_GetJsonValue(pFtable,"body/response/cbdjxxlist/v[1]/sbjbjgdm",NULL);
-			TRACE("body/response/cbdjxxlist/v[1]/sbjbjgdm2[%s]\r\n",pBRCV);
+			if(pBRCV)
+				TRACE("body/response/cbdjxxlist/v[1]/sbjbjgdm2[%s]\r\n",pBRCV);
+			else
+				TRACE("body/response/cbdjxxlist/v[1]/sbjbjgdm2[NULL]\r\n");
 
 			pBRCV=Conv_GetJsonValue(pFtable,"body/response/cbdjxxlist/v[0]/jfxzxxlist/v/ksjfny",NULL);
-			TRACE("body/response/cbdjxxlist/v[0]/jfxzxxlist/v/ksjfny[%s]\r\n",pBRCV);
+			if(pBRCV)
+				TRACE("body/response/cbdjxxlist/v[0]/jfxzxxlist/v/ksjfny[%s]\r\n",pBRCV);
+			else 
+				TRACE("body/response/cbdjxxlist/v[0]/jfxzxxlist/v/ksjfny[NULL]\r\n");
 			pBRCV=Conv_GetJsonValue(pFtable,"body/response/cbdjxxlist/v[1]/jfxzxxlist/v/zzjfny",NULL);
-			TRACE("body/response/cbdjxxlist/v[1]/jfxzxxlist/v/zzjfny[%s]\r\n",pBRCV);
+			if(pBRCV)
+				TRACE("body/response/cbdjxxlist/v[1]/jfxzxxlist/v/zzjfny[%s]\r\n",pBRCV);
+			else 
+				TRACE("body/response/cbdjxxlist/v[1]/jfxzxxlist/v/zzjfny[NULL]\r\n");
 		
 			//-------------调用方法2-(分部法,一层层的解)----------------
 			TRACE("-------------调用方法2-(分部法,一层层的取)----------------\r\n");
@@ -655,9 +667,9 @@ int TEST_JSON(char *pTitle)
 			{
 				char *zjhm,*cbdjxxlist;
 				response=Conv_GetJsonValue((dfJsonTable *)body,"response",&type); //第一次取出第一层结构
-				TRACE("retCode[%d][%x]\r\n",type,response);
 				if(response)
-				{
+				{	
+					TRACE("retCode[%d][%x]\r\n",type,response);
 					zjhm=Conv_GetJsonValue((dfJsonTable *)response,"zjhm",&type);
 					TRACE("body/response/zjhm[%d][%s]\r\n",type,zjhm);
 					cbdjxxlist=Conv_GetJsonValue((dfJsonTable *)response,"cbdjxxlist",&type);
@@ -679,7 +691,6 @@ int TEST_JSON(char *pTitle)
 					}
 				}
 			}
-			
 			Conv_JSON_free(pFtable);
 		}
 		else

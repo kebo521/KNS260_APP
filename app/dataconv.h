@@ -24,7 +24,7 @@
 	{
 		struct _dfJsonTable *pNext;
 		u16 		sLen,Total;
-		dfJsonItem	Item[1];
+		dfJsonItem	Item[0];
 	}dfJsonTable;
 		
 

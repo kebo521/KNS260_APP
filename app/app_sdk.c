@@ -233,7 +233,7 @@ int APP_ShowTradeFA(char *pShowMsg,int tTimeOutMS)
 		width=API_strlen(pShowMsg)*FONT_SIZE/2;
 		if(width < UI_TRADE_FA_MSG_W)
 		{
-			Rect.top	= UI_TRADE_FA_MSG_Y+FONT_SIZE;
+			Rect.top	= UI_TRADE_FA_MSG_Y;
 			Rect.left	= UI_TRADE_FA_MSG_X+(UI_TRADE_FA_MSG_W-width)/2;
 			Rect.width	= width;
 			Rect.height = FONT_SIZE;

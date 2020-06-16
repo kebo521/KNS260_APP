@@ -62,7 +62,7 @@ int Tcp_Link(char* pTitle)
 			APP_ShowTradeFA(STR_PLEASE_CHARGE,3000);
 		return OPER_ERR;
 	}
-	else if(((ret&0xff)!=NET_WLAN_CntHost) && ((ret&STATE_NET_2G)==0))
+	else if(!(ret&(NET_WLAN_CntHost|STATE_NET_CntPDP)))
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
