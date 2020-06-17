@@ -1,602 +1,325 @@
 #include "communal.h"
 
 
+DfFlow_Link  pFlow={0};
+QR_COL_Data  g_ColData;
+
+//static pDataTable  pItemdata;
+
+int CheckMchidIsNull()
+{
+	{	
+	    return 0;
+	}
+	//APP_ShowMsg("提示","请先导入商户信息",3000); 
+	//return 1;
+}
+void DataInit()
+{
+	if(PE_SendBuf==NULL)
+	{
+		PE_SendBuf=malloc(BufSize);
+	}
+	PE_pSend = PE_SendBuf;	
+	if(pFlow.pMd5Start==NULL)
+	{
+		pFlow.pMd5Start=malloc(BufSize);
+	}
+	PE_pMD5 = pFlow.pMd5Start;
+}
+void DataFree(void)
+{
+	PE_JsonFree();
+}
 
 int Full_CheckRecv(char *pRecv,int ReadLen)
 {
 	if(ReadLen > 0)
 	{
-		pRecv[ReadLen]='\0';
-		if(API_strstr(pRecv,"<xml>"))
+		int		cycle;
+		char	*pStrStart,*pEnd;
+		pStrStart = pRecv;
+		pEnd = pStrStart+ReadLen;
+		//------------找到起点-----------------------
+		while(pStrStart < pEnd)
 		{
-			if(API_strstr(pRecv,"</xml>"))
-			{
-				TRACE("Full_CheckRecv[%d] OK\r\n", ReadLen);
-				return ReadLen;
-			}
+			if(*pStrStart++ == '{') break;
 		}
+		if(pStrStart >= pEnd) return 0;
+		//------------找到终点-----------------------
+		cycle = 1;
+		while(pStrStart < pEnd)
+		{
+			if(*pStrStart == '{')
+				cycle++;
+			else if(*pStrStart == '}')
+				cycle--;
+			if(cycle == 0) break;
+			pStrStart++;
+		}
+		if(cycle) return 0;
+		pStrStart++;
+		return (pStrStart-pRecv);
 	}
-	TRACE("pRecvLen=%d nofull\r\n",ReadLen);
-	return 0;
+	//TRACE("RecvErrData[%s]\r\n",pRecv);
+	return 0;	
 }
 
 
-/**
- * socket 连接
- */
 
-int PE_Connect(char *pShowLink,char *pAdderr,u16 uPort)
+int SuccessTradeProcess(void)
 {
-	int		ret;
-	char	sHost[64+3];
-	u8 		ENssL;
-	ret=APP_GetNetState();
-	if(ret == OPER_LOW_VOLTAGE)
-	{//--------------电量低限制交易--------------------------
-		APP_ShowTradeFA(STR_PLEASE_CHARGE,3000);
-		return OPER_ERR;
-	}
-	else if(((ret&0xff)!=NET_WLAN_CntHost) && ((ret&STATE_NET_2G)==0))
+	char DisplayMoney[16];
+	char sPayType[12],*payType;
+	APP_ShowTradeOK(g_ColData.payAmount); 
+	payType=PE_GetRecvIdPar("payType");
+	/*
+	wx_pay：微信支付；
+	ali_pay：支付宝；
+	union_offline：银行卡；
+	union_qrcode：银联扫码；
+	union_online：银联钱包；
+	member_wallet：会员钱包；
+	cash：现金
+	*/
+	if(API_strcmp(payType,"wx_pay")==0)
 	{
-		APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
-		return OPER_ERR;
+		API_strcpy(sPayType,"微信收款");
 	}
-	if(pShowLink) APP_ShowWaitFor(pShowLink);//STR_NET_LINK_WLAN
-	ENssL = Conv_HttpGetName(sHost,pAdderr);
-	ret=APP_Network_Connect(sHost,uPort,ENssL);
-	TRACE("PE Connect ret=[%d]\r\n",ret);
-	if(ret < 0)
+	else if(API_strcmp(payType,"ali_pay")==0)
 	{
-		APP_ShowNoSignel(STR_NET_FAIL_LINK,3000);
-		TRACE("PE Connect ERR[%s]\r\n",STR_NET_FAIL_LINK);
-		return ret;
+		API_strcpy(sPayType,"支付宝收款");
 	}
-	return 0;
+	else
+	{
+		API_strcpy(sPayType,"收款成功");
+	}	
+	Conv_TmoneyToDmoney(DisplayMoney,g_ColData.payAmount);
+    APP_TTS_PlayText("%s%s元",sPayType,DisplayMoney);
+	//-------更新本地时间----------
+	SetSysDateTime(PE_GetRecvIdPar("payTime"));
+	return APP_WaitUiEvent(10*1000);
 }
 
-
-/**
- * 收发数据、校验数据
- */
-int PE_SocketData(char *pTitle, CHECK_DATA_FULL pCheckFull)
-{	
-	int ret;
-	if (0 > (ret = APP_Network_Send(PE_SendBuf, pFlow.pMsgLen)))
-	{
-		if (ret != OPER_RET)
-		{
-			if(pTitle) APP_ShowMsg(STR_MESSAGE, STR_NET_FAIL_SEND, 10*1000);
-		}
-		return ret;
-	}
-
-	if (0 >= (ret = APP_Network_Recv(PE_SendBuf, BufSize,20*1000, Full_CheckRecv)))
-	{
-		if(pTitle) 
-		{
-			char message[128] = {0};
-			if ( ret == OPER_RET )
-			{
-				API_sprintf(message, "[%s]\n%s", STR_USER_CONCELL, STR_TRADE_RESULT_UNKOWN);
-			}
-			else 
-			{
-				API_sprintf(message, "[%s]\n%s", STR_NET_FAIL_RECV, STR_TRADE_RESULT_UNKOWN);
-			}
-			APP_ShowMsg(STR_MESSAGE, message, 10*1000);
-		}
-		return ret;
-	}
-
-	// 校验数据
-	PE_SendBuf[ret] = '\0';
-	if (OPER_OK != PE_LoadRecvData(PE_SendBuf)){
-		if(pTitle) APP_ShowTradeMsg(STR_DATA_FORMAT_ERR, 5000);
-		return OPER_ERR;
-	}
-
-	if (OPER_CRCERR == Conv_Sign_Check(PE_RecvTable,"key",g_ColData.key)){
-		if(pTitle) APP_ShowTradeMsg(STR_SIGN_ERR, 5000);
-		return OPER_CRCERR;
-	} 
-	return 0;
-}
-
-int FPS_SocketSend(void)
-{	
-	int ret;
-	if (0 > (ret = APP_Network_Send(PE_SendBuf, pFlow.pMsgLen)))
-	{
-		if (ret != OPER_RET)
-		{
-			APP_ShowMsg(STR_MESSAGE, STR_NET_FAIL_SEND, 10*1000);
-		}
-		return ret;
-	}
-	return 0;
-}
-
-int FPS_SocketRecv(CHECK_DATA_FULL pCheckFull)
-{	
-	int ret;
-	char message[128] = {0};
-	if (0 >= (ret = APP_Network_Recv(PE_SendBuf, BufSize,20*1000, Full_CheckRecv)))
-	{
-		if ( ret == OPER_RET )
-		{
-			API_sprintf(message, "[%s]\n%s", STR_USER_CONCELL, STR_TRADE_RESULT_UNKOWN);
-		}
-		else 
-		{
-			API_sprintf(message, "[%s]\n%s", STR_NET_FAIL_RECV, STR_TRADE_RESULT_UNKOWN);
-		}
-		APP_ShowMsg(STR_MESSAGE, message, 10*1000);
-		return -1;
-	}
-	// 校验数据
-	if ( 0 != FPS_CheckRecvData(PE_SendBuf, ret) )
-	{
-		return -1;
-	}
-	return ret;
-}
-
-
-// 扫码收款组包
-void ScanPack(void)
+void Send_add_item(char* pID,char* pData)
 {
-	//生成的tag
-	SetServiceElementValue("unified.trade.micropay");
-	GenerateOutTradeNo();
-	GenerateNonceStr();
-	GenerateTimeStart();
-	SetMchCreateIp();
-
-	//组请求报文
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(attach);
-	SEND_ADD_ITEM(auth_code);
-	SEND_ADD_ITEM(body);
-	SEND_ADD_ITEM(charset);
-	Send_add_item("device_info", g_ColData.term_sn);
-	SEND_ADD_ITEM(mch_create_ip);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	Send_add_item("op_device_id", g_ColData.term_sn);
-	SEND_ADD_ITEM(op_shop_id);
-	SEND_ADD_ITEM(op_user_id);
-	SEND_ADD_ITEM(out_trade_no);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(time_start);	
-	SEND_ADD_ITEM(total_fee);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
+	if(API_strlen(pData))
+	{
+		PE_pSend=Conv_SetPackageJson(PE_pSend,pID,pData);
+		*PE_pSend++= ',';	//连接下一条
+		PE_pMD5=Conv_SetPackageHttpGET(PE_pMD5,pID,pData);
+		*PE_pMD5++= '&';	//连接下一条
+	}
 }
 
-// 二维码支付组包
-void QRcodePack(void)
+void Send_add_end_Sign(void)
 {
-	GenerateOutTradeNo();
-	GenerateNonceStr();
-	SetMchCreateIp();
-	GenerateTimeStart();
-
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(attach);
-	SEND_ADD_ITEM(body);
-	SEND_ADD_ITEM(charset);
-	SEND_ADD_ITEM(device_info);
-	SEND_ADD_ITEM(mch_create_ip);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	SEND_ADD_ITEM(notify_url);
-	SEND_ADD_ITEM(op_user_id);
-	SEND_ADD_ITEM(out_trade_no);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(time_start);	
-	SEND_ADD_ITEM(total_fee);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
+	u32 len;
+	u8 uMd5Out[20]; 
+	PE_pMD5=Conv_SetPackageHttpGET(PE_pMD5,"key",g_ColData.signkey);
+	len = PE_pMD5-pFlow.pMd5Start;
+	md5((u8*)pFlow.pMd5Start,len,uMd5Out);
+	Conv_BcdToStr(uMd5Out,16,g_ColData.sign);
+	PE_pSend=Conv_SetPackageJson(PE_pSend,"sign",g_ColData.sign);
 }
 
-// 订单查询
-void  QueryPack(void)
-{	
-	SetServiceElementValue("unified.trade.query");
-	
-	GenerateNonceStr();	//更新随机数
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(charset);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	SEND_ADD_ITEM(out_trade_no);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(transaction_id);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();  
-}
 
-// 订单查询2
-void SubQueryPack(void)
-{
-	GenerateNonceStr();
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(charset);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	SEND_ADD_ITEM(out_trade_no);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
-}
 
-// 订单退款组包
-void RefundedPack(void)
+// 第1条的附属信息  也是跟前置约定的类型，类型不通链接不同
+void TradeDataPacked_start(char *pTradeAddress)
 {  
-	GenerateNonceStr();	//更新随机数
-	GenerateOutRefundNo();
-	SetServiceElementValue("unified.trade.refund");	
-
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	Send_add_item("op_user_id", g_ColData.mch_id); 
-	SEND_ADD_ITEM(out_refund_no);
-	SEND_ADD_ITEM(refund_fee);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(total_fee);
-	SEND_ADD_ITEM(transaction_id);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
+	DataInit();
+	PE_sLenStart=Conv_Post_SetHead(pTradeAddress,"application/json",PE_pSend);
+	//API_sprintf(pSendLenAddr[7], "% 3d\r\n\r\n",API_strlen(param)) 预留7个字节空间
+	PE_pSend=PE_sLenStart+7;
+	*PE_pSend++ ='{';
 }
 
-// 订单退款查询组包
-void SUB_RefundedQueryPack(void)
-{
-	GenerateNonceStr();	//更新随机数
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	SEND_ADD_ITEM(out_refund_no);
-//	SEND_ADD_ITEM(refund_id);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(transaction_id);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
+void TradeDataPacked_end(void)
+{	
+	char sendLen[8];
+	*PE_pSend++ = '}';
+	//----------------把3个字节固定长度写入buff区---------------------
+	API_sprintf(sendLen,"%3d\r\n\r\n",PE_pSend-PE_sLenStart-7); //预留7个字节空间
+	API_memcpy(PE_sLenStart,sendLen,7);
+	*PE_pSend++ = '0';
+	*PE_pSend = '\0';
+	pFlow.pMsgLen=PE_pSend-PE_SendBuf;
+	TRACE("->PE_SendBuf:\r\n%s\r\n", PE_SendBuf);
 }
 
-void CloseOrderPack(void)
+void UpData_timestampAndNoncestr(int GenId)
 {
-	SetServiceElementValue("unified.trade.close");
-	GenerateNonceStr();
-	TradeGet_start(HTTP_TRADE_ADDERR);
-	SEND_ADD_ITEM(charset);
-	SEND_ADD_ITEM(mch_id);
-	SEND_ADD_ITEM(nonce_str);
-	SEND_ADD_ITEM(out_trade_no);
-	SEND_ADD_ITEM(service);
-	SEND_ADD_ITEM(sign_type);
-	SEND_ADD_ITEM(version);
-	SEND_ADD_SIGN(sign);
-	TradeGet_End();
+	u32 timeStamp;
+	ST_TIME tTime;
+	OsGetTime(&tTime);
+	Conv_DateToTimestamp(&tTime,8,&timeStamp);
+	sprintf(g_ColData.timestamp,"%d",timeStamp);
+	memcpy(g_ColData.nonceStr,g_ColData.sn+2,8);
+	sprintf(g_ColData.nonceStr+8,"%s",g_ColData.timestamp);
+	if(GenId)
+		sprintf(g_ColData.outTradeId,"%s%s",g_ColData.shopId,g_ColData.timestamp);
 }
 
 
-//===========PFS==============================
-/*
-<xml>
-	<version>1.0</version>??
-	<merchantId>181560000310</merchantId>??
-	<orderRef>1020</orderRef>??
-	<msgId>102340100</msgId>??
-	<amount>1</amount>??
-	<accessType>OFL</accessType>??
-	<payMethod>FPS</payMethod>??
-	<randStr>adf880d5c8986bd0deb6423c92c9d948</randStr>?
-	<sign>1B5F7E3F8AFB2DFFD48D7EC0D69F5CC2178672A84EE1ACE98AAE88D40B88C479</sign>
-	</xml>
-*/
-TrandInfoMsgQueue *PFS_ScanPack(const char *pTradeAddress)
+void SweepPackData_V2(void)
 {
-	TrandInfoMsgQueue *pNode;
-	pNode=CreateInfoMsgQueueNode();
-	if(pNode == NULL) return NULL;
-	//生成的tag
-	GenerateOutTradeNo();
-	GenerateNonceStr();
-	//SetMchCreateIp();
-
-	//组请求报文
-	TradeGet_start(pTradeAddress);
-	Send_add_item("accessType","OFL");
-	Send_add_item("amount",g_ColData.total_fee);
-	Send_add_item("merchantId",g_ColData.merchantId);
-	Send_add_item("msgId",pNode->msgId);
-	Send_add_item("orderRef",g_ColData.out_trade_no);
-	Send_add_item("payMethod","FPS");
-	Send_add_item("randStr",g_ColData.nonce_str);
-	Send_add_item("version","1.0");
-	Send_add_sha256sign("sign");
-	TradeGet_End();
-	return pNode;
-}
-
-
-void PFS_TradeQuery(const char *pTradeAddress,TrandInfoMsgQueue *pNode)
-{
-	GenerateNonceStr();
-	//SetMchCreateIp();
-	//组请求报文
-	TradeGet_start(pTradeAddress);
-	//Send_add_item("accessType","OFL");
-	Send_add_item("merchantId",g_ColData.merchantId);
-	Send_add_item("orderRef",pNode->orderRef);
-	Send_add_item("payRef",pNode->payRef);
-	Send_add_item("randStr",g_ColData.nonce_str);
-	Send_add_item("version","1.0");
-	Send_add_sha256sign("sign");
-	TradeGet_End();
-}
-
-
-
-void PFS_FreePack(TrandInfoMsgQueue *pNode)
-{
-	if(pNode==NULL) return;
-	FreeInfoMsgQueueNode(pNode);
-}
-
-
-
-int PE_PackData(int flow_tag)
-{
-	switch(flow_tag)
-	{
-		case FLOW_SCAN: 
-			ScanPack();
-			break;
-		case FLOW_PAY: 
-			QRcodePack();
-			break;
-		case FLOW_QUERY: 
-			QueryPack();
-			break;
-		case FLOW_REFUND: 
-			RefundedPack();
-			break;
-		case FLOW_CLOSE: 
-			CloseOrderPack();
-			break;
-		default:
-			return -1;
-	}
-
-	return 0;
-}
-
-int PE_CommProcess(char *pTitle, int flow_tag,  CHECK_DATA_FULL pCheckFull, char *msg)
-{
-	PE_PackData(flow_tag);
-	if(0 != PE_SocketData(pTitle, Full_CheckRecv))
-	{
-		return -1;
-	}
-	return 0;
+	UpData_timestampAndNoncestr(1);
+	SEND_ADD_ITEM(authCode);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	SEND_ADD_ITEM(outTradeId);
+	SEND_ADD_ITEM(payAmount);
+	SEND_ADD_ITEM(returnContent);
+	SEND_ADD_ITEM(shopId);
+	SEND_ADD_ITEM(sn);
+	SEND_ADD_ITEM(terminalType);
+	SEND_ADD_ITEM(timestamp);
+	Send_add_end_Sign();
 }
 
 /*
-void PE_ShowRefundAOK(char *pTradeMoney)
-{
-	UI_ShowBmpAndMoney(L"E:\\bmp\\RetOK.bin",pTradeMoney);
-	API_GUI_Show();
-}
+//-------------三先一----------------
+SEND_ADD_ITEM(tradeId);
+SEND_ADD_ITEM(outTradeId);
+SEND_ADD_ITEM(transactionId);
+
 */
-//--------收款 0，退款成功，1，退款提单成功 2----------------------
-int SuccessTradeProcess(char *pStradeName)
+void PackData_OrderQuery(void)
 {
-	char sBuff[24];
-	char *pDate,*pTmoney,*pTransaction_id,*pOut_refund_no=NULL;
-	if(API_strcmp(pStradeName,ORDER_REFUND_APPLY)==0)
-	{
-		pTmoney=PE_GetRecvIdPar("refund_fee");
-		APP_ShowRefundsOK(pTmoney);
-		if(pTmoney==NULL) 
-			return APP_WaitUiEvent(10*1000);
-		pDate=PE_GetRecvIdPar("refund_time");
-		pOut_refund_no=PE_GetRecvIdPar("out_refund_no");
-	}
-	else if(API_strstr(pStradeName,ORDER_REFUND))
-	{
-		pTmoney=PE_GetRecvIdPar("refund_fee_0");
-		if(pTmoney==NULL)
-			pTmoney=g_ColData.refund_fee;
-		APP_ShowRefundsOK(pTmoney); 
-		pDate=PE_GetRecvIdPar("refund_time_0");
-		pOut_refund_no=PE_GetRecvIdPar("out_refund_no_0");
-	}
-	else	//--收款
-	{
-		pTmoney=PE_GetRecvIdPar("total_fee");
-		if(pTmoney==NULL)
-			pTmoney=g_ColData.total_fee;
-		APP_ShowTradeOK(pTmoney);
-		pDate=PE_GetRecvIdPar("time_end");
-	}
-	//---------------------------------------------
-	Conv_TmoneyToDmoney(sBuff,pTmoney);
-#ifdef INTERNATIONAL_VERSION
-	APP_AudioDtmfPlay(DTMF_letterB, 2);
-#else
-	APP_TTS_PlayText("%s%s元",pStradeName,sBuff);
-#endif
-	if(pDate)
-	{//--------自动更新时间-------
-		//20180423112758
-		API_memcpy(sBuff   ,pDate	,4);
-		API_memcpy(sBuff+5 ,pDate+4 ,2);
-		API_memcpy(sBuff+8 ,pDate+6 ,2);
-		API_memcpy(sBuff+11,pDate+8 ,2);
-		API_memcpy(sBuff+14,pDate+10,2);
-		API_memcpy(sBuff+17,pDate+12,2);
-		//2018 03 08 17 03 43
-		sBuff[4]='-';
-		sBuff[7]='-';
-		sBuff[10]=' ';
-		sBuff[13]=':';
-		sBuff[16]=':';
-		sBuff[19]='\0';
-		SetSysDateTime(sBuff);
-		//2018-03-08 17:03:43
-		pDate=sBuff;
-	}
-	if(pDate==NULL)
-	{
-		GetSysDateTime(sBuff,"%04d-%02d-%02d %02d:%02d:%02d");
-		pDate=sBuff;
-	}
-	pTransaction_id=PE_GetRecvIdPar("transaction_id");
-	if(pTransaction_id==NULL)
-		pTransaction_id=g_ColData.transaction_id;
-	insertHeadNodes(pTmoney,pDate,pStradeName,pTransaction_id,pOut_refund_no);// 保存于本地明细查询
-	return APP_WaitUiEvent(10*1000);
+	//g_ColData.payType; 
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	SEND_ADD_ITEM(outTradeId);
+	SEND_ADD_ITEM(shopId);
+	SEND_ADD_ITEM(sn);
+	SEND_ADD_ITEM(terminalType);
+	SEND_ADD_ITEM(timestamp);
+	SEND_ADD_ITEM(tradeId);
+	SEND_ADD_ITEM(transactionId);
+	Send_add_end_Sign();
 }
 
-int SuccessTradeSaveFPS(char *pStradeName)
+//   /open/Pay/refund
+void PackData_refund(void)
 {
-	char sBuff[24];
-	char *pDate,*pTmoney,*pTransaction_id;
-	//--------------交易成功提示---------------------
-	pTmoney=PE_GetRecvIdPar("amount");								
-	if(pTmoney==NULL)
-		pTmoney=g_ColData.total_fee;
-	APP_ShowTradeOK(pTmoney);
-	//---------------------------------------------
-	Conv_TmoneyToDmoney(sBuff,pTmoney);
-#ifdef INTERNATIONAL_VERSION
-	APP_AudioDtmfPlay(DTMF_letterB, 2);
-#else
-	APP_TTS_PlayText("%s%s元",pStradeName,sBuff);
-#endif
-	pDate=PE_GetRecvIdPar("sysTransTime");
-	if(pDate)
-	{//--------自动更新时间-------
-		//20180423112758
-		API_memcpy(sBuff   ,pDate	,4);
-		API_memcpy(sBuff+5 ,pDate+4 ,2);
-		API_memcpy(sBuff+8 ,pDate+6 ,2);
-		API_memcpy(sBuff+11,pDate+8 ,2);
-		API_memcpy(sBuff+14,pDate+10,2);
-		API_memcpy(sBuff+17,pDate+12,2);
-		//2018 03 08 17 03 43
-		sBuff[4]='-';
-		sBuff[7]='-';
-		sBuff[10]=' ';
-		sBuff[13]=':';
-		sBuff[16]=':';
-		sBuff[19]='\0';
-		//2018-03-08 17:03:43
-		pDate=sBuff;
-	}
-	if(pDate==NULL)
+	//g_ColData.payType; 
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+
+	if(g_ColData.terminalType[0] == '2')
 	{
-		GetSysDateTime(sBuff,"%04d-%02d-%02d %02d:%02d:%02d");
-		pDate=sBuff;
+		//SEND_ADD_ITEM(outTradeId);
+		SEND_ADD_ITEM(refundFee);
+		SEND_ADD_ITEM(returnContent);
+		SEND_ADD_ITEM(sn);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+		SEND_ADD_ITEM(tradeId);
+		SEND_ADD_ITEM(transactionId);
 	}
-	pTransaction_id=PE_GetRecvIdPar("orderRef");
-	if(pTransaction_id==NULL)
-		pTransaction_id=g_ColData.transaction_id;
-	insertHeadNodes(pTmoney,pDate,pStradeName,pTransaction_id,NULL);// 保存于本地明细查询
-	return APP_WaitUiEvent(10*1000);
+	else if(g_ColData.terminalType[0] == '1')
+	{
+		//SEND_ADD_ITEM(outTradeId);
+		SEND_ADD_ITEM(refundFee);
+		SEND_ADD_ITEM(returnContent);
+		SEND_ADD_ITEM(shopId);		
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+		SEND_ADD_ITEM(tradeId);
+		SEND_ADD_ITEM(transactionId);
+		SEND_ADD_ITEM(userCode);
+	}
+	Send_add_end_Sign();
 }
 
 
-int FailedTradeProcess(char* pCode)
+void PackData_ConsumeCard(void)
 {
-	int retlen;
-	char msg[128];
-	retlen=API_sprintf(msg,"%s[ %s ]\n",STR_RUTURN_CODE, pCode);
-	if(NULL!=(pCode=PE_GetRecvIdPar("err_msg")))
-	{
-		API_Utf8ToGbk(msg+retlen,sizeof(msg)-retlen,pCode);
-	}
-	return APP_ShowTradeMsg(msg,20*1000); 
+	//g_ColData.payType; 
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(code);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	SEND_ADD_ITEM(shopId);
+	SEND_ADD_ITEM(sn);
+	SEND_ADD_ITEM(terminalType);
+	SEND_ADD_ITEM(timestamp);
+	SEND_ADD_ITEM(transactionId);
+	Send_add_end_Sign();
 }
 
 
-int CUP_QueryResult(int timeOutMs)
+void PackData_shiftStatV2(void)
 {
-	u32 event;
-	int ret=PAY_TIMEOUTS;
-	int CruTimeMs=API_TimeCurrMS();
-	timeOutMs += CruTimeMs;
-	event=API_WaitEvent(5000,EVENT_UI,EVENT_NONE);
-	if(event == EVENT_CANCEL)
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	if(g_ColData.terminalType[0] == '2')
 	{
-		return OPER_RET;
+		SEND_ADD_ITEM(sn);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
 	}
-	
-	SetServiceElementValue("unified.trade.query");
-	APP_SetKeyAccept(0x03);
-	while(CruTimeMs < timeOutMs)
+	else if(g_ColData.terminalType[0] == '1')
 	{
-		event=API_WaitEvent(1000,EVENT_UI,EVENT_NONE);
-		if(event == EVENT_CANCEL)
-		{
-			ret=OPER_RET;
-			break;
-		}
-		SubQueryPack();
-		ret=PE_SocketData(NULL, Full_CheckRecv);
-		if (ret < 0)
-		{
-			TRACE("->>>>>PE_SocketData[%d]>>>>#####ERR\r\n",ret);
-			Tcp_Close(NULL);
-			ret=Tcp_Link(NULL);
-			TRACE("->>>>>Re Tcp_Link>>>>[%d]\r\n",ret);
-			if(ret < 0)
-				break;
-		}
-		if(IsStatusSucceed())
-		{	
-			if(PE_CheckRecvIdPar("result_code","0") == 0)
-			{
-				char *trade_state;
-				trade_state=PE_GetRecvIdPar("trade_state");
-				if(trade_state)
-				{
-					TRACE("----->>>>>trade_state>>>>[%s]\r\n",trade_state);
-					if(API_strcmp(trade_state,"SUCCESS")==0)
-					{
-						ret=PAY_SUCCESS;
-						break;
-					}
-					if(API_strcmp(trade_state,"PAYERROR")==0)
-					{
-						ret=PAY_FAILED;
-						break;
-					}					
-				}
-			}
-		}	
-		CruTimeMs=API_TimeCurrMS();
+		SEND_ADD_ITEM(shopId);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+		SEND_ADD_ITEM(userCode);
 	}
-	APP_SetKeyAccept(0x00);
-	return ret;	
+	Send_add_end_Sign();
 }
 
-//===================二维码显示====================================
-void PE_ShowQRcodeDis(char *pQRcode,char *pTradeMoney)
+void PackData_shiftRecordV2(void)
+{
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(count);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	SEND_ADD_ITEM(nowPage);
+	if(g_ColData.terminalType[0] == '2')
+	{
+		SEND_ADD_ITEM(sn);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+	}
+	else if(g_ColData.terminalType[0] == '1')
+	{
+		SEND_ADD_ITEM(shopId);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+		SEND_ADD_ITEM(userCode);
+	}
+	Send_add_end_Sign();
+}
+
+void PackData_shiftConfirm(void)
+{
+	UpData_timestampAndNoncestr(0);
+	SEND_ADD_ITEM(developerId);
+	SEND_ADD_ITEM(nonceStr);
+	SEND_ADD_ITEM(recordId);
+	if(g_ColData.terminalType[0] == '2')
+	{
+		SEND_ADD_ITEM(sn);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+	}
+	else if(g_ColData.terminalType[0] == '1')
+	{
+		SEND_ADD_ITEM(shopId);
+		SEND_ADD_ITEM(terminalType);
+		SEND_ADD_ITEM(timestamp);
+		SEND_ADD_ITEM(userCode);
+	}
+	Send_add_end_Sign();
+}
+
+
+int PE_ShowQRcodeDis(char* pQRcode)
 {
 	RECTL	Rect;
 	Rect.left	= SCREEN_APP_X;
@@ -606,1488 +329,668 @@ void PE_ShowQRcodeDis(char *pQRcode,char *pTradeMoney)
 	UI_ShowPictureFile(&Rect,"QRcode.clz");
 
 	Rect.left	= UI_QR_CODE_X;
-	Rect.top	= UI_QR_CODE_Y;
+	Rect.top	= UI_QR_CODE_Y+5;
 	Rect.width	= UI_QR_CODE_W;
 	Rect.height = UI_QR_CODE_H;
 	API_GUI_Draw565QRcode(&Rect,pQRcode,RGB565_BLACK);
-	if(pTradeMoney)
 	{
 		POINT tFontXY;
 		u16 width;
-		char sShowStr[14];
-		API_strcpy(sShowStr,"HK$");
-		width=Conv_TmoneyToDmoney(sShowStr+3,pTradeMoney);
-		width=(width+3)*FONT_SIZE/2;
+		char sShowStr[32];
+		API_strcpy(sShowStr,"金额:￥");
+		Conv_TmoneyToDmoney(sShowStr+API_strlen(sShowStr),g_ColData.payAmount);
+		width=API_strlen(sShowStr)*FONT_SIZE/2;
 		tFontXY.left =UI_QR_MONEY_X+ (UI_QR_MONEY_W-width)/2;
 		tFontXY.top =UI_QR_MONEY_Y;
 		UI_SetColorRGB565(RGB565_BLACK,RGB565_PARENT);
 		UI_DrawString(&tFontXY,sShowStr);
 	}
 	API_GUI_Show();
+	return 0;
 }
 
-int ShowResultFailMsg(int timeOutMs)
-{
-	API_GUI_CreateWindow("Transaction",TOK,TCANCEL,0);
-	API_GUI_OprInfo("Query again?if \'No\',please visit international Mobile Payment Platform to search result","Yes or No");
-	API_GUI_Info(NULL,TEXT_ALIGN_CENTER|TEXT_VALIGN_BOTTOM|TEXT_EXSTYLE_BORDER,"again");
-	API_GUI_Show();
-	return APP_WaitUiEvent(timeOutMs);
-}
-/**
- * <定时查询订单结果>
- * 
- * @param tTimeOutMS 查询超时时间
- * 
- * @return 0 查询成功, -1 通讯异常， -2查询超时
- */
- /*
-int QueryTradeOrder(int tTimeOutMS)
-{      
-	int ret;
-	ret=CUP_QueryResult(tTimeOutMS);
-	if(ret== PAY_SUCCESS)
-	{
-		ShowSucceedTrade();
-	}
-	else if(ret!= OPER_RET)
-	{
-		if(EVENT_OK == ShowResultFailMsg('P',20*1000))
-		{
-			ret=PAY_QUERY;
-		}
-		//ShowReturnMessage();
-	}
-	return ret;
-}	
-*/
-	
 
-/**
- * <关闭订单>
- * 二维码支付流程，支付超时，调用关单接口
- * 
- */
-int CloseOrderFlow(int LinkFlag)
+void PE_ShowfailMsg(char* pCode)
 {
-	if(LinkFlag)
-	{
-		if (0 != PE_Connect(STR_CLOSE_ORDER,HTTP_TRADE_ADDERR,HTTP_TRADE_PORT)){
+	char codeInfo[32]={0};
+	char GbkMsg[128]={0};
+	API_sprintf(codeInfo,"应答码[%s]",pCode);
+	API_Utf8ToGbk(GbkMsg,sizeof(GbkMsg),PE_GetRecvIdPar("errMsg"));
+	PE_ShowMsg("提示",codeInfo,GbkMsg,NULL,10*1000);
+ }
+
+
+int inside_OrderQuery(BOOL notDisplay)
+{
+	TCP_SetInterNotDisplay(notDisplay);
+	// 组建数据包,发送请求
+	if(Tcp_Link("连接中心..")) 
+		return -1;
+	// 组建数据包,发送请求
+	TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Pay/orderQuery");
+	PackData_OrderQuery();
+	TradeDataPacked_end();
+	// 发送接收数据
+	if(Tcp_SocketData("数据交互",Full_CheckRecv)) 
+		return -2;
+	Tcp_Close(NULL);
+	return 0;
+}
+
+
+int MicroPay(char* title)
+{    
+	char *pCode;
+	do{
+		if(CheckMchidIsNull())return -1;
+		if(0 != InputTotalFee(title)){
 			return -1;
 		}
-		DataInit();
-	}
-	CloseOrderPack(); // 组建数据包,发送请求
-	if (0 == PE_SocketData(" ", Full_CheckRecv))
-	{
-		PE_ReadRecvIdPar("transaction_id",g_ColData.transaction_id,
-					sizeof(g_ColData.transaction_id));
-		/*
-		if(!IsTradeSucceed())
+		
+		if(0 != InputAuthcodeByCamScan())
 		{
-			ShowReturnMessage(); // 保存订单号,检查交易结果
-		}*/
-	}
-	if(LinkFlag)
-	{
-		DataFree();
-		Tcp_Close(NULL);
-	}
-	return 0;
-}
-
-/**
- * <流程开始检查终端参数>
- *
- * @return 0 参数正常， -1 参数异常
- */
-int CheckParamPreFlow(void)
-{
-	if (0 != GetTermSN())
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_NO_WRITE_SN, 5*1000);
-		return -1;
-	}
-
-	if(CheckMchidIsNull())
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_INPUT_MERCHANT_INFO, 5*1000); 
-		return -1;
-	}
-
-	return 0;
-}
-
-
-/**
- * <扫码收款>
- *. 
- * @author  pangrenxuan
- * @date  20180425
- */
-int SweepFlow(char *pTitle)
-{
-	int ret=0;
-	if(0 != InputTotalFee(pTitle)){
-		return -1;
-	}
-
-	if(0 != CheckParamPreFlow())
-	{
-		return -1;
-	}
-
-	if(0 != ScanAuthCode())
-	{
-		return -1;
-	}
-	
-	if (0 != PE_Connect(" ",HTTP_TRADE_ADDERR,HTTP_TRADE_PORT))
-	{
-		return -1;
-	}
-	
-	DataInit();
-	
-	while(0 == PE_CommProcess(pTitle, FLOW_SCAN, Full_CheckRecv, NULL))
-	{
-		// 保存订单号,检查交易结果
-		PE_ReadRecvIdPar("transaction_id", g_ColData.transaction_id, sizeof(g_ColData.transaction_id));
-
-		if(API_memcmp(PE_GetRecvIdPar("status"),"0",1)==0)
-		{    
-			if(API_memcmp(PE_GetRecvIdPar("result_code"),"0",1)==0)
-			{    
-				ShowSucceedTrade();
-			}
-			else if(IsTradeNeedQuerry())
+			return -1;
+		}
+		TCP_SetInterNotDisplay(FALSE);
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Pay/microPayV2");
+		SweepPackData_V2();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+	RE_QUERY_ADDER:
+		pCode=PE_GetRecvIdPar("errCode");
+		TRACE("reCode:%s",pCode); 
+		if(pCode[0] == '0') //返回成功，可以解析下一层 数据。
+		{
+			char *tradeInfo;
+			tradeInfo = PE_GetRecvIdPar("tradeInfo");
+			if(tradeInfo)
 			{
-				ret=CUP_QueryResult(60*1000);
-				if(ret== PAY_SUCCESS)
+				if(!PE_JsonDataParse(tradeInfo,API_strlen(tradeInfo)))
 				{
-					ShowSucceedTrade();
-				}
-				else if(ret== PAY_FAILED)
-				{
-					APP_ShowTradeFA(NULL,10*1000);
-					//CloseOrderFlow();
-				}
-				else if(ret!= OPER_RET)
-				{
-					if(EVENT_OK == ShowResultFailMsg(20*1000))
+					char *payStatus;
+					payStatus = PE_GetRecvIdPar("payStatus");
+					if(API_strcmp(payStatus,"SUCCESS")==0)
 					{
-						//ret=PAY_QUERY;
-						APP_ShowWaitFor("Query again");
-						continue;
+						PE_ReadRecvIdPar("incomeAmount",g_ColData.payAmount);
+						SuccessTradeProcess();	
 					}
-				}
-			}
-			else
-				ShowReturnMessage();
-		}
-		else
-		{
-			ShowReturnMessage();
-		}
-	/*
-		if(0==IsTradeSucceed())
-		{	
-			ShowSucceedTrade();
-		}
-		else
-		{
-			if(IsTradeNeedQuerry())
-			{
-				ret=CUP_QueryResult(60*1000);
-				if(ret== PAY_SUCCESS)
-				{
-					ShowSucceedTrade();
-				}
-				else if(ret== PAY_FAILED)
-				{
-					APP_ShowTradeFA(NULL,10*1000);
-					//CloseOrderFlow();
-				}
-				else if(ret!= OPER_RET)
-				{
-					if(EVENT_OK == ShowResultFailMsg('P',20*1000))
+					else if(API_strcmp(payStatus,"CLOSE")==0)
 					{
-						//ret=PAY_QUERY;
-						APP_ShowWaitFor("Query again");
-						continue;
+						APP_ShowTradeMsg("订单已关闭",10000);
 					}
+					else if(API_strcmp(payStatus,"PAYERROR")==0)
+					{
+						APP_ShowTradeFA("支付失败",10000);
+					}
+					else if(API_strcmp(payStatus,"NOTPAY")==0)
+					{
+						APP_ShowTradeMsg("未支付",10000);
+					}
+					else if(API_strcmp(payStatus,"REVOKED")==0)
+					{
+						APP_ShowTradeMsg("订单已撤销",10000);
+					}
+					else if(API_strcmp(payStatus,"USERPAYING")==0)
+					{
+						PE_ReadRecvIdPar("tradeId",g_ColData.tradeId);
+						PE_ReadRecvIdPar("outTradeId",g_ColData.outTradeId);
+						
+						Tcp_Close(NULL);
+						PE_JsonFree();
+						API_WaitEvent(2*1000);
+						if(0 == inside_OrderQuery(TRUE))
+							goto RE_QUERY_ADDER; 
+						APP_ShowTradeMsg("订单支付中,稍候查询确认",10000);
+					}
+					PE_JsonFree();
 				}
+			}
+			//pSdkFun->net->KeyAccept(0x00);
+			break;
+		}
+		else //if(API_strcmp(code,"500"))
+		{
+			PE_ShowfailMsg(pCode);
+		 }
+	}while(0);
+    DataFree();
+	Tcp_Close(NULL);
+	return 0;	
+}
+
+int OrderQuery(char* pTitle)
+{
+	char* pCode;
+	int ret;
+	do{
+		if(CheckMchidIsNull())return -1;
+		ret=APP_CamScan('Q',NULL,g_ColData.transactionId,8,32,30*1000);
+		if(ret<0) return -1;
+		if(ret==OPER_HARD)
+		{
+		    if(APP_ScanInput(pTitle,"请手输入订单号",NULL,g_ColData.transactionId,10,32)) 
+				return -1;
+		}
+		g_ColData.tradeId[0]=0;
+		g_ColData.outTradeId[0]=0;
+		if(inside_OrderQuery(FALSE))
+			break;
+		pCode=PE_GetRecvIdPar("errCode");
+	    TRACE("reCode:%s",pCode); 
+	    if(pCode[0] == '0') 
+	    {
+			char *tradeInfo;
+			tradeInfo = PE_GetRecvIdPar("tradeInfo");
+			if(tradeInfo)
+			{
+				if(!PE_JsonDataParse(tradeInfo,API_strlen(tradeInfo)))
+				{
+					char *pPar,*pShow;
+					char showBuff[256];
+					pShow=showBuff;
+					pPar=PE_GetRecvIdPar("id");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"太米流水:%s\n",pPar);
+					}
+					pPar=PE_GetRecvIdPar("outTradeId");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"第三流水:%s\n",pPar);
+					}
+					
+					pPar=PE_GetRecvIdPar("transactionId");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"交易流水:%s\n",pPar);
+					}
+					pPar=PE_GetRecvIdPar("orderNum");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"商户订单号:%s\n",pPar);
+					}
+					pPar=PE_GetRecvIdPar("module");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"module:%s\n",pPar);
+					}
+					pPar=PE_GetRecvIdPar("shopId");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"门店号:%s  ",pPar);
+					}
+					pPar=PE_GetRecvIdPar("merchantUserId");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"店员号:%s\n",pPar);
+					}
+
+
+
+					pPar=PE_GetRecvIdPar("orderAmount");
+					if(pPar)
+					{
+						char DisplayMoney[16];
+						Conv_TmoneyToDmoney(DisplayMoney,pPar);
+						pShow += sprintf(pShow,"订单总额:%s\n",DisplayMoney);
+					}
+					pPar=PE_GetRecvIdPar("incomeAmount");
+					if(pPar)
+					{
+						char DisplayMoney[16];
+						Conv_TmoneyToDmoney(DisplayMoney,pPar);
+						pShow += sprintf(pShow,"实收金额:%s\n",DisplayMoney);
+					}
+					pPar=PE_GetRecvIdPar("payTime");
+					if(pPar)
+					{
+						pShow += sprintf(pShow,"支付时间:\n%s\n",pPar);
+					}
+					APP_ShowInfo(pTitle,showBuff,30*1000);
+					PE_JsonFree();
+				}
+			}
+			//pSdkFun->net->KeyAccept(0x00);
+			break;
+		}
+		else 
+		{
+			PE_ShowfailMsg(pCode);
+	 	} 
+	}while(0);
+    DataFree();
+	Tcp_Close(NULL);
+	return 0;	
+}
+int RefundFlow(char* pTitle)
+{
+	int ret=1;
+	char* pCode;
+	do{
+		if(CheckMchidIsNull())return -1;
+		//if(APP_InputPin(title,"请输入管理员密码:","请按数字键输入", "888888")) return -1;
+		ret=APP_CamScan('R',NULL,g_ColData.transactionId,10,32,20*1000);
+		if(ret<0) return -1;
+		if(ret == OPER_HARD)
+		{
+		    if(APP_ScanInput(pTitle,"请手输入订单号",NULL,g_ColData.transactionId,10,32)) 
+				return -1;
+		}
+		if(inside_OrderQuery(FALSE))
+			break;
+		g_ColData.tradeId[0]='\0';	//清除 太米ID
+		pCode=PE_GetRecvIdPar("errCode");
+		if(pCode[0] == '0') 
+		{
+			char *tradeInfo = PE_GetRecvIdPar("tradeInfo");
+			if(tradeInfo!=NULL && 0==PE_JsonDataParse(tradeInfo,API_strlen(tradeInfo)))
+			{
+				char *pPar;
+				u32 income=0,refund;
+				pPar=PE_GetRecvIdPar("id");
+				if(pPar)
+					API_strcpy(g_ColData.tradeId,pPar);
+				pPar=PE_GetRecvIdPar("incomeAmount");
+				if(pPar)
+					income = API_atoi(pPar);
+				pPar=PE_GetRecvIdPar("refundAmount");
+				if(pPar)
+				{
+					refund=API_atoi(pPar);
+					if(income < refund)
+						income = 0;
+					else income -= refund;
+				}
+				if(income == 0)
+				{
+					APP_ShowTradeMsg("无可退金额",10*1000);
+                       break;
+				}
+				sprintf(g_ColData.refundFee,"%d",income);
+				PE_JsonFree();
 			}
 			else
-				ShowReturnMessage();
-		}
-		*/
-		break;
-	}
-
-	DataFree();
-	Tcp_Close(pTitle);
-	/*
-	if(ret==PAY_QUERY)
-	{
-		QueryFlow(ORDER_QUERY);
-	}
-	*/
-	return 0;
-}
-
-// 二维码收款 
-int QRcodeFlow(char*  pTitle)
-{      
-	if(0 != CheckParamPreFlow())
-	{
-		return -1;
-	}
-	if (0 != PE_Connect(" ",HTTP_TRADE_ADDERR,HTTP_TRADE_PORT))
-	{
-		return -1;
-	}
-	DataInit();
-	if(0 == PE_CommProcess(pTitle, FLOW_PAY, Full_CheckRecv, NULL))
-	{
-		//判断二维码报文获取是否成功
-		if (0==IsTradeSucceed())
-		{
-			if(0 == ShowQRCode()){
-				PE_ReadRecvIdPar("transaction_id", g_ColData.transaction_id, sizeof(g_ColData.transaction_id));
-				if(PAY_SUCCESS == CUP_QueryResult(60*1000))
-				{
-					ShowSucceedTrade();
-				}
-				else //if (0 > QueryTradeOrder(60*1000))
-				{
-					CloseOrderFlow(0);
-				}
-			}
-		}
-		else
-		{
-			ShowReturnMessage();
-		}
-	}
-	DataFree();
-	Tcp_Close(pTitle);
-	return 0;
-}	
-
-// 二维码收款 (微信被扫)
-int QrTypeWX(char*  pTitle)
-{
-#ifndef INTERNATIONAL_VERSION
-	SetServiceElementValue("pay.weixin.native");
-#else
-	SetServiceElementValue("pay.weixin.native.intl");
-#endif
-	QRcodeFlow(pTitle);
-	return 0;
-}
-
-
-// 二维码收款 (支付宝被扫)
-int QrTypeZFB(char*  pTitle)
-{
-#ifndef INTERNATIONAL_VERSION
-	SetServiceElementValue("pay.alipay.native");
-#else
-	SetServiceElementValue("pay.alipay.native.intl");
-#endif
-	QRcodeFlow(pTitle);
-	return 0;
-}
-
-// 二维码收款 (银联被扫)
-int QrTypeUN(char*  pTitle)
-{
-#ifndef INTERNATIONAL_VERSION
-	SetServiceElementValue("pay.unionpay.native");
-#else
-	SetServiceElementValue("pay.upi.native.intl");
-#endif
-	QRcodeFlow(pTitle);
-	return 0;
-}
-
-char* SubPfsTradeQuery(char* pOrderRef)
-{
-	TrandInfoMsgQueue *pTrandNode;
-	char *respCode=NULL;
-	char *AddressHttp=HTTP_TRADE_PFS_ADDERR"/unifiedQuery";
-	APP_Network_Disconnect(5*1000);
-	DataFree();
-	if (0 != PE_Connect(NULL,AddressHttp,HTTP_TRADE_PFS_PORT)) return NULL;
-	DataInit();
-	pTrandNode=CreateInfoMsgQueueNode();
-	while(pTrandNode)
-	{
-		API_strcpy(pTrandNode->orderRef,pOrderRef);
-		//------------------------------------
-		PFS_TradeQuery(AddressHttp,pTrandNode);
-		if(FPS_SocketSend() < 0)
-		{
-			APP_ShowTradeMsg(STR_NET_CENTER_FAIL,3*1000); 
-			break;
-		}
-		if(FPS_SocketRecv(Full_CheckRecv) <= 0)
-		{
-			APP_ShowTradeMsg(STR_NET_CENTER_FAIL,20*1000);
-			break;
-		}
-		respCode=PE_GetRecvIdPar("respCode");	
-		break;
-	}
-	PFS_FreePack(pTrandNode);
-	
-	return respCode;
-}
-int QrTypeFPS(char*  pTitle)
-{	  
-	TrandInfoMsgQueue *pTrandNode;
-	char *AddressHttp = HTTP_TRADE_PFS_ADDERR"/unifiedPrePay";
-	int timeOutMs=2*60*1000;
-	u16	TrandType,RecvErrTimes=0;
-	//https://pay.wepayez.com/pay/unifiedQuery
-	if (0 == API_strlen(g_ColData.merchantId))
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_INPUT_MERCHANT_INFO, 5*1000); 
-		return -1;
-	}
-	if (0 != PE_Connect("",AddressHttp,HTTP_TRADE_PFS_PORT)){
-	 	return -1;
-	}
-	DataInit();
-	pTrandNode=PFS_ScanPack(AddressHttp);
-	TrandType=0;
-	APP_ScreenSleep(FALSE);
-	while(1)	
-	{
-		if(timeOutMs < 0)
-		{//---超时退出---------------
-			APP_ShowTradeMsg(STR_QUERY_TIMEOUTS,10*1000); 
-			break;
-		}
-		if(TrandType)
-		{
-			u32 event;
-			//-------断开前面的连接--------------------
-			Tcp_Close(pTitle);
-			if(TrandType==1)
 			{
-				PE_ReadRecvIdPar("orderRef",pTrandNode->orderRef, sizeof(pTrandNode->orderRef));
-				PE_ReadRecvIdPar("payRef",pTrandNode->payRef, sizeof(pTrandNode->payRef));
-				//--------切换地址重连--------------
-				AddressHttp=HTTP_TRADE_PFS_ADDERR"/unifiedQuery";
-
-				event=API_WaitEvent(5*1000,EVENT_UI,EVENT_NONE);
-				timeOutMs -= 5*1000;
-			}
-			else
-			{
-				event=API_WaitEvent(1000,EVENT_UI,EVENT_NONE);
-				timeOutMs -= 1000;
-			}
-			if(event == EVENT_CANCEL) break;
-			
-			//------连接查询地址--------------------------
-			if (0 != PE_Connect(NULL,AddressHttp,HTTP_TRADE_PFS_PORT)) break;
-			//------------------------------------
-			PFS_TradeQuery(AddressHttp,pTrandNode);
-			TrandType++;
-		}
-
-		if(FPS_SocketSend() < 0)
-		{
-			APP_ShowTradeMsg(STR_NET_CENTER_LINK,3*1000); 
-			break;
-		}
-		if(FPS_SocketRecv(Full_CheckRecv) <= 0)
-		{
-			RecvErrTimes++;
-			if(RecvErrTimes>2) 
-			{
-				APP_ShowTradeMsg("Not receive the transaction result\nplease confirm by querying the transaction",20*1000);
-				break;
+				APP_ShowTradeMsg("查无此订单信息",10*1000);
+                break;
 			}
 		}
 		else 
 		{
-			RecvErrTimes=0;
-		}
-		//判断二维码报文获取是否成功
+			PE_ShowfailMsg(pCode);
+			break;
+		} 
+		PE_JsonFree();
+		
+		if(0>APP_EditSum(pTitle,'R',g_ColData.refundFee,60*1000))
 		{
-			char *respCode;
-			if(NULL != (respCode=PE_GetRecvIdPar("respCode")))
+			return -1;
+		}
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Pay/refund");
+		PackData_refund();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+		
+		pCode=PE_GetRecvIdPar("errCode");
+		if(pCode[0] == '0') 
+		{
+			APP_ShowRefundsOK(g_ColData.refundFee);
+			APP_WaitUiEvent(10*1000);
+		}
+		else //if(API_strcmp(code,"500"))
+		{
+			PE_ShowfailMsg(pCode);
+		 }
+	}while(0);
+	DataFree();
+	APP_Network_Disconnect(50);
+	return 0;		
+}
+
+int ConsumeCard(char* pTitle)
+{
+	char* pCode;
+	int ret;
+	do{
+		if(CheckMchidIsNull())return -1;
+		APP_ShowSta(pTitle,"请扫优惠券核销码");
+		ret=APP_OnlyCamScan(0x03,8,sizeof(g_ColData.code)-1,g_ColData.code,30*1000);
+		if(ret<0) return -1;
+		if(ret==OPER_HARD)
+		{
+			if(APP_ScanInput(pTitle,"请手输入订单号",NULL,g_ColData.code,10,32)) 
+				return -1;
+		}
+		TCP_SetInterNotDisplay(FALSE);
+		// 组建数据包,发送请求
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Card/consumeCard");
+		PackData_OrderQuery();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+		pCode=PE_GetRecvIdPar("errCode");
+		TRACE("reCode:%s",pCode); 
+		if(pCode[0] == '0') 
+		{
+			APP_ShowTradeOK(NULL);
+			APP_WaitUiEvent(10*1000);
+			break;
+		}
+		else 
+		{
+			PE_ShowfailMsg(pCode);
+		} 
+	}while(0);
+	DataFree();
+	Tcp_Close(NULL);
+	return 0;	
+}
+
+int shiftStatV2(char* pTitle)
+{
+	char* pCode;
+	do{
+		if(CheckMchidIsNull())return -1;
+		// 组建数据包,发送请求
+		TCP_SetInterNotDisplay(FALSE);
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Staff/shiftStatV2");
+		PackData_shiftStatV2();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+		pCode=PE_GetRecvIdPar("errCode");
+		TRACE("reCode:%s",pCode); 
+		if(pCode[0] == '0') 
+		{
+			char *stat=PE_GetRecvIdPar("stat");
+			PE_ReadRecvIdPar("recordId",g_ColData.recordId); 
+			if((stat!= NULL) && (API_strlen(stat)>8))
+			{	
+				char showbuff[1024],*pshow;
+				char IndexBuff[64],*pPar;
+				int i,total;
+				dfJsonTable *pJsonData,*pStartJson = Conv_JSON_GetMsg(stat,stat+API_strlen(stat));
+				pJsonData = pStartJson;
+				showbuff[0] = '\0';
+				pshow = showbuff;
+				while(pJsonData)
+				{
+					pPar=Conv_GetJsonValue(pJsonData,"title",NULL);
+					API_Utf8ToGbk(IndexBuff,sizeof(IndexBuff),pPar);
+					pshow=eStrcpy(pshow,IndexBuff);
+					*pshow++ =':';
+					*pshow++ ='\n';
+					pPar=Conv_GetJsonValue(pJsonData,"totalAmount",NULL);
+					sprintf(IndexBuff,"总金额:%s",pPar);
+					pshow=eStrcpy(pshow,IndexBuff);
+					pshow=eStrcpy(pshow,"元");
+					*pshow++ =' ';
+					*pshow++ =' ';
+					pPar=Conv_GetJsonValue(pJsonData,"totalCount",NULL);
+					total=API_atoi(pPar);
+					sprintf(IndexBuff,"项数:%s",pPar);
+					pshow=eStrcpy(pshow,IndexBuff);
+					*pshow++ ='\n';
+					for(i=0;i<total;i++)
+					{
+						sprintf(IndexBuff,"module[%d]/payType",i);
+						pPar=Conv_GetJsonValue(pJsonData,IndexBuff,NULL);
+						if(pPar == NULL) break;
+						API_Utf8ToGbk(IndexBuff,sizeof(IndexBuff),pPar);
+						pshow=eStrcpy(pshow,IndexBuff);
+						*pshow++ =':';
+						*pshow++ =' ';
+						sprintf(IndexBuff,"module[%d]/count",i);
+						pPar=Conv_GetJsonValue(pJsonData,IndexBuff,NULL);
+						sprintf(IndexBuff,"%s次",pPar);
+						pshow=eStrcpy(pshow,IndexBuff);
+						*pshow++ = ',';
+						sprintf(IndexBuff,"module[%d]/amount",i);
+						pPar=Conv_GetJsonValue(pJsonData,IndexBuff,NULL);
+						sprintf(IndexBuff,"%s元",pPar);
+						pshow=eStrcpy(pshow,IndexBuff);
+						*pshow++ = '\n';
+					}
+					pJsonData = pJsonData->pNext;
+					*pshow++ = '\n';
+				}
+				*pshow='\0';
+				APP_ShowInfo(pTitle,showbuff,10*1000);
+				Conv_JSON_free(pStartJson);
+			}
+			else
 			{
-				if(API_memcmp(respCode,"0000",4)==0)
-				{//交易成功
-					if(TrandType == 0)
-					{//--------获取二维码--------------------
-						char *msgId;	
-						msgId = PE_GetRecvIdPar("msgId");
-						if(API_strcmp(msgId,pTrandNode->msgId)==0)
+				APP_ShowMsg(pTitle,"无交易记录",5000);
+			}
+		}
+		else 
+		{
+			PE_ShowfailMsg(pCode);
+		} 
+	}while(0);
+	DataFree();
+	Tcp_Close(NULL);
+	return 0;	
+}
+
+
+int shiftRecordV2(char* pTitle)
+{
+	char* pCode;
+	int recordMax;
+	u16 count,nowPage;
+	if(CheckMchidIsNull())return -1;
+	// 组建数据包,发送请求
+	TCP_SetInterNotDisplay(FALSE);
+	nowPage=0;
+	count = 4;
+	do{
+	RETURN_DISPLAY_PAGE:
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Staff/shiftRecordV2");
+		sprintf(g_ColData.nowPage,"%d",nowPage);
+		sprintf(g_ColData.count,"%d",count);
+		PackData_shiftRecordV2();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+		Tcp_Close(0);
+		pCode=PE_GetRecvIdPar("errCode");
+		TRACE("reCode:%s",pCode); 
+		if(pCode[0] == '0') 
+		{
+			char *recordCount=PE_GetRecvIdPar("recordCount");
+			if(recordCount!=NULL && (recordMax=API_atoi(recordCount))>0)
+			{
+				char *recordList=PE_GetRecvIdPar("recordList");
+				if((recordList!= NULL) && (API_strlen(recordList)>8))
+				{	
+					u8 type;
+					char showbuff[1023];
+					char IndexBuff[64];
+					char *pshow,*pPar;
+					int i,total;
+					dfJsonTable *pStat;
+					dfJsonTable *pJsonData,*pStartJson = Conv_JSON_GetMsg(recordList,recordList+API_strlen(recordList));
+					pJsonData = pStartJson;
+					showbuff[0] = '\0';
+					pshow = showbuff;
+					while(pJsonData)
+					{
+						pPar=Conv_GetJsonValue(pJsonData,"recordId",NULL);
+						pshow += sprintf(pshow,"交班记录id:%s\n",pPar);
+						pPar=Conv_GetJsonValue(pJsonData,"startTime",NULL);
+						pshow += sprintf(pshow,"上班时间:\n%s\n",pPar);
+						pPar=Conv_GetJsonValue(pJsonData,"endTime",NULL);
+						pshow += sprintf(pshow,"下班时间:\n%s\n",pPar);
+						pPar=Conv_GetJsonValue(pJsonData,"staff",NULL);
+						if(g_ColData.terminalType[0] == '2')
+							pshow += sprintf(pshow,"终端:%s\n",pPar);
+						else if(g_ColData.terminalType[0] == '1')
+							pshow += sprintf(pshow,"员工:%s\n",pPar);
+						type = 0;
+						pStat=(dfJsonTable *)Conv_GetJsonValue(pJsonData,"stat",&type);
+						if(type >= ITEM_STRUCT)
 						{
-							char *qrCode;
-							if(NULL != (qrCode=PE_GetRecvIdPar("qrCode")))
+							while(pStat)
 							{
-								PE_ShowQRcodeDis(qrCode, g_ColData.total_fee);
-								TRACE("code_url:%s \r\n",qrCode);
-								TrandType++;
-								continue;
+								pPar=Conv_GetJsonValue(pStat,"title",NULL);
+								API_Utf8ToGbk(IndexBuff,sizeof(IndexBuff),pPar);
+								pshow=eStrcpy(pshow,IndexBuff);
+								*pshow++ =':';
+								*pshow++ ='\n';
+								pPar=Conv_GetJsonValue(pStat,"totalAmount",NULL);
+								sprintf(IndexBuff,"总金额:%s",pPar);
+								pshow=eStrcpy(pshow,IndexBuff);
+								pshow=eStrcpy(pshow,"元");
+								*pshow++ =' ';
+								*pshow++ =' ';
+								pPar=Conv_GetJsonValue(pStat,"totalCount",NULL);
+								total=API_atoi(pPar);
+								sprintf(IndexBuff,"项数:%s",pPar);
+								pshow=eStrcpy(pshow,IndexBuff);
+								*pshow++ ='\n';
+								for(i=0;i<total;i++)
+								{
+									sprintf(IndexBuff,"module[%d]/payType",i);
+									pPar=Conv_GetJsonValue(pStat,IndexBuff,NULL);
+									if(pPar == NULL) break;
+									API_Utf8ToGbk(IndexBuff,sizeof(IndexBuff),pPar);
+									pshow=eStrcpy(pshow,IndexBuff);
+									*pshow++ =':';
+									*pshow++ =' ';
+									sprintf(IndexBuff,"module[%d]/count",i);
+									pPar=Conv_GetJsonValue(pStat,IndexBuff,NULL);
+									sprintf(IndexBuff,"%s次",pPar);
+									pshow=eStrcpy(pshow,IndexBuff);
+									*pshow++ = ',';
+									sprintf(IndexBuff,"module[%d]/amount",i);
+									pPar=Conv_GetJsonValue(pStat,IndexBuff,NULL);
+									sprintf(IndexBuff,"%s元",pPar);
+									pshow=eStrcpy(pshow,IndexBuff);
+									*pshow++ = '\n';
+								}
+								pStat = pStat->pNext;
+								*pshow++ = '\n';
 							}
-							else 
+						}
+						*pshow++ = '\n';
+						pJsonData = pJsonData->pNext;
+					}
+					*pshow='\0';
+					APP_ShowInfoSta(pTitle,showbuff,NULL);
+					while(1)
+					{
+						int evet;
+						evet=API_WaitEvent(30*1000,EVENT_KEY);
+						if(evet & EVENT_KEY)
+						{
+							evet &= EVENT_NONE;
+							if(evet == K_DOWN)
 							{
-								APP_ShowTradeMsg(STR_DATA_FORMAT_ERR,10*1000); 
+								if((nowPage+count) < recordMax)
+								{
+									nowPage += count;
+									goto RETURN_DISPLAY_PAGE;
+								}
+							}
+							else if(evet == K_UP)
+							{
+								if(nowPage > 0)
+								{
+									if(nowPage > count)
+										nowPage -= count;
+									else
+										nowPage = 0;
+									goto RETURN_DISPLAY_PAGE;
+								}
+							}
+							if(evet == K_CANCEL)
+							{
 								break;
 							}
 						}
-						else
-						{
-							//FPS_SocketRecv(Full_CheckRecv);
-							TRACE("-->>交易中msgId对应不上\r\n");
-							continue;
-						}	
+						else break;
 					}
-					else
-					{//-----------查结果---------------------------------
-						char *msgId;
-						char *pTradeState;
-						pTradeState = PE_GetRecvIdPar("tradeState");
-						if(API_memcmp(pTradeState,"NOTPAY",6)==0)
-							continue;
-						
-						msgId = PE_GetRecvIdPar("msgId");
-						if(API_strcmp(msgId,pTrandNode->msgId)==0)
-						{
-							if(API_memcmp(pTradeState,"SUCCESS",7)==0)
-							{
-								SuccessTradeSaveFPS("FPS Pay");
-							}
-							else 
-							{
-								APP_ShowTradeMsg(pTradeState,5*1000); 
-							}
-						/*
-							char *pAmount,*pCurrCode; 
-							pAmount=PE_GetRecvIdPar("amount");
-							pCurrCode=PE_GetRecvIdPar("currCode");
-							if(pAmount!=NULL)
-							{
-								if(pCurrCode!=NULL)
-								{
-									char buffamout[24];
-									char sShowStr[12];
-									Conv_TmoneyToDmoney(sShowStr,pAmount);
-									API_sprintf(buffamout,"%s %s",pCurrCode,sShowStr);
-									APP_ShowTradeOK(buffamout);
-								}
-								else
-								{
-									APP_ShowTradeOK(pAmount);
-								}
-								APP_WaitUiEvent(10*1000);
-							}
-							else 
-							{
-								APP_ShowTradeMsg("结果无交易金额",5*1000); 
-							}
-							*/
-						}
-						else
-						{
-							//FPS_SocketRecv(Full_CheckRecv);
-							TRACE("-->>查msgId对应不上\r\n");
-							continue;
-						}		
-					}
-				}
-				else
-				{
-					char msg[256];
-					int len;
-					char *errorDetail;
-					len = API_sprintf(msg, "返回码[%s]\n", respCode);
-					errorDetail = PE_GetRecvIdPar("errorDetail");
-					if ( errorDetail )
-						API_Utf8ToGbk(msg + len, sizeof(msg)-len, errorDetail);
-					APP_ShowMsg(STR_MESSAGE, msg,10*1000);
-					break;
-				}
-			}
-		}
-		break;
-	}
-	APP_ScreenSleep(TRUE);
-	PFS_FreePack(pTrandNode);
-	DataFree();
-	Tcp_Close(pTitle);
-	return 0;
-}
-
-
-
-// 二维码收款 (支付宝被扫)
-int QrCodePaymentAlipay(char*  pTitle)
-{
-	int ret;
-	if(OpenAPN(pTitle))	{
-		APP_ShowNoSignel(NULL, 3*1000);
-		return -1;
-	}
-	CLEAR(g_ColData.total_fee);
-	ret=APP_EditSum(pTitle,'D',g_ColData.total_fee,30*1000);
-	if(ret <= 0) return ret;
-	if(Tcp_Link(pTitle)) 
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_NET_ERR_LINK, 10*1000);
-		return -1;
-	}
-	return QrTypeZFB(pTitle);
-}
-
-// 二维码收款 (微信被扫)
-int QrCodePaymentWechat(char*  pTitle)
-{
-	int ret;
-	if(OpenAPN(pTitle)) 
-	{
-		APP_ShowNoSignel(NULL, 3*1000);
-		return -1;
-	}
-	CLEAR(g_ColData.total_fee);
-	ret=APP_EditSum(pTitle,'D',g_ColData.total_fee,30*1000);
-	if(ret <= 0) return ret;
-	if(Tcp_Link(pTitle))  
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_NET_ERR_LINK, 10*1000);
-		return -1;
-	}
-	return QrTypeWX(pTitle);
-}
-
-int PE_CamScan(char * pTitle,char* pHintOrTMoney,char *pOutCode,int MinLen,int MaxLen,int timeOutMs)
-{
-	u16 	flagKey=0x00,Width;
-	char 	sShowStr[12];
-	RECTL	Rect;
-	
-	Rect.left	= UI_MAP_TITLE_X;
-	Rect.top	= UI_MAP_TITLE_Y;
-	Rect.width	= UI_MAP_TITLE_W;
-	Rect.height = UI_MAP_TITLE_H;
-
-	{
-		POINT	rclTrg;
-		pGuiFun->FillRect(&Rect,RGB565(35,35,35));
-		Width = API_strlen(pTitle)*FONT_SIZE/2;
-		rclTrg.left	= Rect.left;
-		rclTrg.top	= Rect.top;
-		if(Width < Rect.width)
-			rclTrg.left=Rect.left+(Rect.width-Width)/2;
-		else rclTrg.left=Rect.left;
-		rclTrg.top =Rect.top+(Rect.height-FONT_SIZE)/2;
-		UI_SetColorRGB565(RGB565_WITHE,RGB565(35,35,35));
-		UI_DrawString(&rclTrg,pTitle);
-	}
-	
-	Rect.top	= UI_MAP_CONT_Y;
-	Rect.height = UI_MAP_CONT_H;
-	
-	UI_ShowPictureFile(&Rect,"ScanIpt.clz");
-	//UI_ShowPictureFile(&Rect,L"E:\\bmp\\ScanCod.bin");
-	Rect.top	= UI_SCAN_TEXT_Y;
-	flagKey	= 0x02;
-	
-	if(pHintOrTMoney)
-	{
-		Rect.left	= UI_EDIT_sMONEY_X;
-		Rect.width	= UI_EDIT_sMONEY_W;
-		Rect.height = UI_EDIT_sMONEY_H;
-		if(pHintOrTMoney[0]>='0' && pHintOrTMoney[0]<='9')
-		{
-			Conv_TmoneyToDmoney(sShowStr,pHintOrTMoney);
-			UI_ShowSmallNum(&Rect,1,sShowStr);
-		}
-		else
-		{
-			POINT rclTrg;
-			Width = API_strlen(pHintOrTMoney)*FONT_SIZE/2;
-			if(Width < Rect.width)
-				rclTrg.left=Rect.left+(Rect.width-Width)/2;
-			else rclTrg.left=Rect.left;
-			rclTrg.top =Rect.top;
-			UI_SetColorRGB565(RGB565_WITHE,RGB565_PARENT);
-			UI_DrawString(&rclTrg,pHintOrTMoney);
-		}
-	}
-	API_GUI_Show();	
-	return APP_OnlyCamScan(flagKey,MinLen,MaxLen,pOutCode,timeOutMs);
-}
-
-
-// 查询
-int QueryFlow(char* pTitle)
-{
-	int	ret;
-
-	ret=PE_CamScan(pTitle, NULL, g_ColData.transaction_id, 10, 32, 20*1000);
-	if(ret<0) return -1;
-	if(ret == OPER_HARD || ret == OPER_NEW)
-	{
-		g_ColData.transaction_id[0]='\0';	//不能将上面的结果带下来。
-		ret = APP_InputMerchSN('Q', g_ColData.transaction_id, 10, 32, 20*1000);
-		if(ret<0) return -1;
-	}
-	if (0 != PE_Connect(" ",HTTP_TRADE_ADDERR,HTTP_TRADE_PORT))
-	{
-		return -1;
-	}
-	DataInit();
-	if(0 == PE_CommProcess(pTitle, FLOW_QUERY, Full_CheckRecv, NULL))
-	{
-		ShowOrderInfo();
-	}
-	Tcp_Close(pTitle);
-	DataFree();
-	
-	return 0;
-}
-int QueryRefundResult(char* pTitle)
-{      
-	int ret=PAY_TIMEOUTS;
-	ret=PE_CamScan(pTitle,NULL,g_ColData.transaction_id,8,32,20*1000);
-	if(ret<0) return -1;
-	if(ret==OPER_HARD)
-	{
-		g_ColData.transaction_id[0]='\0';	//不能将上面的结果带下来。
-		ret=APP_InputMerchSN('R',g_ColData.transaction_id,10,32,20*1000);
-		if(ret<0) return -1;
-	}
-	if(0 != PE_Connect(" ",HTTP_TRADE_ADDERR,HTTP_TRADE_PORT))
-	{
-		return -1;
-	}
-	DataInit();
-	{
-		int i=1;
-		TradeRecordItem* pItem;
-		g_ColData.out_refund_no[0]='\0';
-		while(1)
-		{//避免想同编号存入其中
-			pItem=GetTradeRecord(i++);
-			if(pItem==NULL) break;
-			if(API_strcmp(pItem->order,g_ColData.transaction_id)==0)
-			{
-				API_strcpy(g_ColData.out_refund_no,pItem->out_refund_no);
-				break;
-			}
-		}
-	}
-	SetServiceElementValue("unified.trade.refundquery");	
-	SUB_RefundedQueryPack();
-	ret=PE_SocketData(pTitle, Full_CheckRecv);
-	if (ret >= 0)
-	{
-		if(IsTradeSucceed() == 0)
-		{	
-			char *prefund_status_0 = PE_GetRecvIdPar("refund_status_0");
-			ret= PAY_NOTSURE;
-			if(prefund_status_0)
-			{
-				if (API_strcmp(prefund_status_0, "SUCCESS") == 0)
-				{
-					SuccessTradeProcess(ORDER_REFUND);
-					ret= PAY_SUCCESS;
-				}
-				else if(API_strcmp(prefund_status_0, "FAILED") == 0 )
-				{	
-					APP_ShowMsg(STR_ORDER_RERUND_FAILED,STR_CONTACT_WORKER,10*1000);
-					//APP_ShowTradeFA(STR_ORDER_RERUND_FAILED##"\n\n"##STR_CONTACT_WORKER,10*1000);
-					ret= PAY_FAILED;
-				}
-				else if(API_strcmp(prefund_status_0, "PROCESSING") == 0 )
-				{
-					TRACE("Query RefundStatus->PAY_PROCESSING\r\n");
-					//APP_ShowMsg(STR_ORDER_RERUND_PROCESSING,STR_CONTACT_WORKER,10*1000);
-					APP_ShowTradeMsg(STR_ORDER_RERUND_PROCESSING,10*1000);
-					ret=PAY_PROCESSING;
-				}
-				else
-				{	
-					TRACE("Query RefundStatus->%s\r\n",prefund_status_0);
-					APP_ShowTradeMsg(prefund_status_0,10*1000);
-					ret=PAY_NOTSURE;
-				}
-			}
-		}
-		else 
-		{// 交易错误提示
-			FailedTradeProcess(PE_GetRecvIdPar("result_code"));
-		}
-	}
-	DataFree();
-	Tcp_Close(pTitle);
-	return ret;
-}
-
-int FPS_QueryFlow(char* pTitle)
-{
-	int	ret;
-	TrandInfoMsgQueue TrandNode={0};
-	char showBuff[1024];
-	char *respCode;
-	do{
-		ret=PE_CamScan(pTitle, NULL, TrandNode.orderRef, 10, 32, 20*1000);
-		if(ret<0) return -1;
-		if(ret == OPER_HARD || ret == OPER_NEW)
-		{
-			TrandNode.orderRef[0]='\0';	//不能将上面的结果带下来。
-			ret = APP_InputMerchSN('Q', TrandNode.orderRef, 10, 32, 20*1000);
-			if(ret<0) return -1;
-		}
-		//------连接查询地址--------------------------
-		if (0 != PE_Connect("",HTTP_TRADE_PFS_ADDERR"/unifiedQuery",HTTP_TRADE_PFS_PORT))
-			return -1;
-
-		DataInit();
-		//------------------------------------
-		PFS_TradeQuery(HTTP_TRADE_PFS_ADDERR"/unifiedQuery",&TrandNode);
-
-		if(FPS_SocketSend() < 0)
-		{
-			APP_ShowTradeMsg(STR_NET_CENTER_LINK,3*1000); 
-			break;
-		}
-		if(FPS_SocketRecv(Full_CheckRecv) <= 0)
-			break;
-		
-		if(NULL != (respCode=PE_GetRecvIdPar("respCode")))
-		{
-			if(API_memcmp(respCode,"0000",4)==0)
-			{//交易成功
-				//-----------查结果---------------------------------
-				char *pData,*pType; 
-				int offset=0;
-				pData = PE_GetRecvIdPar("tradeState");
-				if(pData)
-				{
-					offset += API_sprintf(showBuff+offset,"tradeState:%s\n",pData);
-				}
-				pData = PE_GetRecvIdPar("payMethod");
-				if(pData)
-				{
-					offset += API_sprintf(showBuff+offset,"payMethod:%s\n",pData);
-				}
-				pData = PE_GetRecvIdPar("amount");
-				pType = PE_GetRecvIdPar("currCode");
-				if(pData)
-				{
-					offset += API_sprintf(showBuff+offset,"amount:%s %s\n",pType,pData);
-				}
-				
-				if(NULL != (pData = PE_GetRecvIdPar("accessType")))
-					offset += API_sprintf(showBuff+offset,"accessType:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("channelOrderRef")))
-					offset += API_sprintf(showBuff+offset,"channelOrderRef:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("payerCurrency")))
-					offset += API_sprintf(showBuff+offset,"payerCurrency:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("payerCurrencyAmt")))
-					offset += API_sprintf(showBuff+offset,"payerCurrencyAmt:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("payerCurrencyExchangeRate")))
-					offset += API_sprintf(showBuff+offset,"payerCurrencyExchangeRate:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("convTransAmt")))
-					offset += API_sprintf(showBuff+offset,"convTransAmt:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("convTransCurrency")))
-					offset += API_sprintf(showBuff+offset,"convTransCurrency:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("convTransExchangeRate")))
-					offset += API_sprintf(showBuff+offset,"convTransExchangeRate:%s\n",pData);
-				if(NULL != (pData = PE_GetRecvIdPar("conRateDate")))
-					offset += API_sprintf(showBuff+offset,"conRateDate:%s\n",pData);
-			}
-			else
-			{
-				int len;
-				char *errorDetail;
-				len = API_sprintf(showBuff, "返回码[%s]\n", respCode);
-				errorDetail = PE_GetRecvIdPar("errorDetail");
-				if ( errorDetail )
-					API_Utf8ToGbk(showBuff + len, sizeof(showBuff)-len, errorDetail);
-			}
-			APP_ShowInfo(pTitle,showBuff,30*1000);
-		}
-		else 
-		{
-			APP_ShowMsg(STR_MESSAGE, "No respCode",5*1000);
-		}
-	}while(0);
-	DataFree();
-	Tcp_Close(pTitle);
-	return 0;
-}
-
-/**
- * <退款查询>
- *
- * @return  0 查询成功, 1 需再次查询,  -1 其他
-
-int RefundQueryFlow(char* pTitle)
-{
-	char *prefund_status_0 = NULL;
-	SetServiceElementValue("unified.trade.refundquery");
-	do {
-		SUB_RefundedQueryPack();
-		if(PE_SocketData(pTitle,Full_CheckRecv)) 
-		{
-			return -1;
-		}
-
-		if(IsTradeSucceed())
-		{	
-			prefund_status_0 = PE_GetRecvIdPar("refund_status_0");
-			TRACE_HEX("prefund_status_0", prefund_status_0, 64);
-			if (API_strcmp(prefund_status_0, "SUCCESS") == 0)
-			{
-				SuccessTradeProcess(ORDER_REFUND);
-			}
-			else if (API_strcmp(prefund_status_0, "PROCESSING") == 0)
-			{	
-				APP_ShowMsg(STR_MESSAGE, STR_ORDER_RERUND_PROCESSING, 10*1000);
-			}
-			else if(API_strcmp(prefund_status_0, "NOTSURE") == 0)
-			{
-				return 1;
-			}
-		}
-		else 
-		{	
-			ShowReturnMessage();
-		}
-	}while(0);
-
-	return 0;
-}
-*/ 
-
-int SubRefundTrade(char* pTitle,char* ptransaction_id,char* pMoney)
-{
-	CLEAR(g_ColData.refund_fee);
-	do{
-		if(ptransaction_id)
-		{
-			if(ptransaction_id != g_ColData.transaction_id)
-			API_strcpy(g_ColData.transaction_id,ptransaction_id);
-		}
-
-		if(pMoney)
-		{
-			API_strcpy(g_ColData.total_fee,  pMoney);
-			API_strcpy(g_ColData.refund_fee,  pMoney);
-		}
-	
-		// 请输入退款金额
-		if(0 > APP_EditSum(pTitle,'R', g_ColData.refund_fee, 10*1000)) 
-		{
-			return OPER_RET;
-		}	
-		APP_ShowWaitRef(g_ColData.refund_fee);
-		DataInit();
-		RefundedPack();
-		if (0 != PE_SocketData(pTitle, Full_CheckRecv) )
-		{
-			break;
-		}
-		if(0==IsTradeSucceed())
-		{
-			if (PE_CheckRecvIdPar("refund_status","SUCCESS") == OPER_OK)
-			{
-				SuccessTradeProcess(ORDER_REFUND);
-			}
-			else
-			{
-				SuccessTradeProcess(ORDER_REFUND_APPLY);
-				//PE_ShowRefundAOK(PE_GetRecvIdPar("refund_fee"),10*1000);
-				//APP_ShowTradeMsg("Refund apply success",10*1000);
-			}
-			//APP_ShowRefundsOK("Refund apply success"); 
-		//	SuccessTradeProcess(ORDER_REFUND);
-		}
-		else
-		{
-			ShowReturnMessage();
-		}
-		// 找到应答码
-		/*
-		pCode=PE_GetRecvIdPar("result_code");
-		if(pCode && API_memcmp(pCode, "0", 1) == 0)
-		{	
-			SAVE_DATA_ITEM(refund_id);
-			SAVE_DATA_ITEM(out_refund_no);
-			return QueryRefundStatus(60*1000);
-		}
-		ShowReturnMessage();
-		*/
-		
-	}while(0);
-	return PAY_SUCCESS;
-}
-
-int PE_InputAccessCode(char* pTitle,char* pFrontTextBuf,char* pAfterTextBuf,char* pkey)
-{
-	char pOutMsg[40]={0};
-	EDIT_DATA tEdit;
-	int ret;
-
-	tEdit.pTitle		=pTitle;
-	tEdit.pFrontText	=pFrontTextBuf;
-	tEdit.pAfterText	=pAfterTextBuf;
-	tEdit.Way			=IME_NUM|IME_PIN_MODE;
-	tEdit.Limit			=IME_NUM|IME_PIN_MODE;
-	tEdit.Min			=1;
-	tEdit.Max			=32;
-	tEdit.timeOutMs=20*1000;
-	ret=APP_Edit(&tEdit,pOutMsg);
-	if(ret>=  tEdit.Min)
-	{
-		if(API_strcmp(pOutMsg,pkey)==0) return 0;
-
-		APP_ShowMsg(pTitle,STR_ACCESS_CODE_ERR,3000);	
-	}
-	return -1;
-}
-
-// 退款 先查询得到退款号，再退款
-int RefundFlow(char* pTitle)	
-{
-	int ret;
-
-	if(0 != CheckParamPreFlow())
-	{
-		return -1;
-	}
-
-	if(PE_InputAccessCode(ORDER_REFUND, STR_ENTER_ACCESS_CODE,  STR_KEY_INPUT_NUMBER, Term_Par.password))
-	{
-		return -1;
-	}
-	ret=APP_CamScan('R',NULL,g_ColData.transaction_id,10,32,20*1000);
-	if(ret<0) return -1;
-	if(ret==OPER_HARD)
-	{
-		g_ColData.transaction_id[0]='\0';	//不能将上面的结果带下来。
-		ret=APP_InputMerchSN('R',g_ColData.transaction_id,10,32,20*1000);
-		if(ret<0) return -1;
-	}
-	if(0 != PE_Connect(" ",HTTP_TRADE_ADDERR,HTTP_TRADE_PORT))
-	{
-		return -1;
-	}
-	DataInit();
-	if(0 == PE_CommProcess(pTitle, FLOW_QUERY, Full_CheckRecv, STR_CHECKING_ORDER))
-	{
-        if(IsOrderStateSucceed() || IsOrderStateRefund())
-		{
-			//---执行退款操作-------
-			PE_ReadRecvIdPar("total_fee", g_ColData.total_fee, sizeof(g_ColData.total_fee));
-			ret=SubRefundTrade(pTitle,g_ColData.transaction_id, g_ColData.total_fee);
-		}
-		else
-		{
-			if(0 == PE_CheckRecvIdPar("result_code","1"))
-			{
-				char presult_code[8],perr_msg[64]={0};
-				char *pfsRetCode;
-				PE_ReadRecvIdPar("result_code",presult_code,sizeof(presult_code));
-				PE_ReadRecvIdPar("err_msg",perr_msg,sizeof(perr_msg));
-				pfsRetCode=SubPfsTradeQuery(g_ColData.transaction_id);
-				if(pfsRetCode != NULL && (API_memcmp(pfsRetCode,"0000",4)==0))
-				{
-					 APP_ShowTradeMsg("No refund function",20*1000);
-				}
-				else
-				{
-					char msg[64+20];
-					int len;
-					if(pfsRetCode) 
-					{
-						API_strcpy(presult_code,pfsRetCode);
-						PE_ReadRecvIdPar("errorDetail",perr_msg,sizeof(perr_msg));
-						TRACE("SubPfsTradeQuery->pfsRetCode[%s]\r\n",pfsRetCode);
-					}
-					len=API_sprintf(msg,"%s[ %s ]\n",STR_RUTURN_CODE, presult_code);
-					if(perr_msg[0])
-					{
-						API_Utf8ToGbk(msg+len, sizeof(msg)-len, perr_msg);
-					}
-					APP_ShowTradeMsg(msg,20*1000);
+					Conv_JSON_free(pStartJson);
 				}
 			}
 			else
 			{
-				ShowOrderInfo();
+				APP_ShowTradeMsg("无交易记录",5000);
 			}
 		}
-	}
+		else 
+		{
+			PE_ShowfailMsg(pCode);
+		} 
+	}while(0);
 	DataFree();
-	Tcp_Close(pTitle);
-	return 0;
+	Tcp_Close(NULL);
+	return 0;	
 }
 
-/**
- * <调用显示二维码>
- *
- * @return 0 成功, -1 失败
- */	
-int ShowQRCode(void)
+
+int shiftConfirm(char* pTitle)
 {
-	char *qrcode;
-
-	//展示二维码
-	if(NULL != (qrcode=PE_GetRecvIdPar("code_url")))
+	char* pCode;
+	if(CheckMchidIsNull())return -1;
+	if(API_strlen(g_ColData.recordId) == 0)
 	{
-		PE_ShowQRcodeDis(qrcode, g_ColData.total_fee);
-		TRACE("code_url:%s \r\n",qrcode);
-	}
-	else 
-	{
-		APP_ShowTradeMsg(STR_DATA_FORMAT_ERR,10*1000); 
-		return -1;
-	}
-
-	return 0;
-}
-
-
-/**
- * <返回状态码 是否成功>
- *
- * 0表示成功，非0表示失败此字段是通信标识，非交易标识
- *
- * @return 1 成功, 0 失败或未知 
- */	
-int IsStatusSucceed(void)
-{
-	char *status  = PE_GetRecvIdPar("status");
-
-	TRACE("status:%s \r\n",status);
-	if( status ) 
-	{
-		if ( API_memcmp(status, "0", 1) == 0 )
-		{
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-/**
- * <是否已经支付>
- *
- * @return  1 是, 0 否
- */	
-int IsNotPay( void )
-{
-	if(PE_CheckRecvIdPar("result_code","0") == 0 )
-	{
-		if ((PE_CheckRecvIdPar("trade_state", "NOTPAY") == 0)
-			|| (PE_CheckRecvIdPar("trade_state", "USERPAYING") == 0))
-		{
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-/**
- * <检查交易结果是否成功>
- *
- * status和result_code字段返回都为0时，判定订单支付成功；
- *
- * @return 0 成功, 1 失败,-1 未知 
- */	
-int IsTradeSucceed(void)
-{
-	char *pstatus      = PE_GetRecvIdPar("status");
-	char *presult_code = PE_GetRecvIdPar("result_code");
-
-	if(pstatus==NULL || presult_code==NULL) {
-		return -1;
-	}
-	if((API_memcmp(pstatus,"0",1)==0) && (API_memcmp(presult_code,"0",1)==0))
-	{    
-		return 0;	
-	}
-
-	return 1;
-}
-
-
-/**
- * <订单交易状态是否成功>
- *  查询、退款查询接口后使用，
- *  status、result_code都为0, trade_state 为SUCCESS，判定订单支付成功（ 或订单退款成功 ）；
- * 
- *  @return 1 成功状态, 0 其他
- */
-int IsOrderStateSucceed(void)
-{
-	if((0==IsTradeSucceed())
-		&& (PE_CheckRecvIdPar("trade_state", "SUCCESS") == 0))
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-int IsOrderStateRefund(void)
-{
-	if ((0==IsTradeSucceed())
-		&& (PE_CheckRecvIdPar("trade_state", "REFUND") == 0))
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-
-/**
- * <检查交易状态是否需要查询>
- *
- * 返回的参数need_query为Y或没有该参数返回时，必须调用订单查询接口进行支付结果确认
- *
- * @return  1 需要查询, 0 不需要查询
- */	
-int IsTradeNeedQuerry(void)
-{
-	char *pneed_query;
-	char *perr_code;
-	/*
-	<charset><![CDATA[UTF-8]]></charset>
-	<mch_id><![CDATA[300540000001]]></mch_id>
-	<message><![CDATA[鍙楃悊鍏崇郴涓嶅瓨鍦╙]></message>
-	<nonce_str><![CDATA[7439CE2D62804F4128107A7C4EF30464]]></nonce_str>
-	<sign><![CDATA[97E677C56904908079FBF2EDDB81CDB5]]></sign>
-	<sign_type><![CDATA[MD5]]></sign_type>
-	<status><![CDATA[410]]></status>
-	<version><![CDATA[2.0]]></version>
-*/
-	pneed_query = PE_GetRecvIdPar("need_query");
-
-	if (!pneed_query ) 
-	{	
-		// 特殊处理,
-		// 当前支付金额超限时，平台不返回need_query参数，但不需继续查询
-		perr_code= PE_GetRecvIdPar("err_code");
-		if(perr_code)
-		{
-			if(API_strstr(perr_code, "Auth"))
-				return 0;
-			if(API_strstr(perr_code, "fail"))
-				return 0;
-			if(API_strstr(perr_code, "invalid"))
-				return 0;
-		}
-		return 1;
-	}
-
-	if ( 0 != API_strcmp(pneed_query, "N"))
-	{
-		return 1;
-	}
-
-
-	if ( IsTradeResultUnkown() )
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-
-/**
- * <检查交易结果是否未知>
- *
- * @return	1 交易结果未知, 0 已知
- */	
-int IsTradeResultUnkown(void)
-{	
-	int index, count;
-	char *err_code;
-	char err_codes[][64]=
-	{
-		"USERPAYING", 				\
-		"Internal error", 			\
-		"BANKERROR",				\
-		"10003",					\
-		"USERPAYING",				\
-		"System error",				\
-		"aop.ACQ.SYSTEM_ERROR"	,	\
-		"ACQ.SYSTEM_ERROR",			\
-		"SYSTEMERROR",				\
-		"aop.unknow-error"					 
-	 };
-
-	err_code=PE_GetRecvIdPar("err_code");
-	if ( NULL == err_code ){
+		APP_ShowTradeFA("请先做交班统计",3000);
 		return 0;
 	}
-
-	count = sizeof(err_codes)/sizeof(err_codes[1]);
-	for(index = 0 ;index < count; index++){
-		if (API_strcmp(err_code, err_codes[index])==0)
+	// 组建数据包,发送请求
+	TCP_SetInterNotDisplay(FALSE);
+	do{
+		if(Tcp_Link("连接中心..")) break;
+		// 组建数据包,发送请求
+		TradeDataPacked_start(HTTP_TRADE_ADDERR"/open/Staff/shift");
+		PackData_shiftConfirm();
+		TradeDataPacked_end();
+		// 发送接收数据
+		if(Tcp_SocketData("数据交互",Full_CheckRecv)) break;
+		pCode=PE_GetRecvIdPar("errCode");
+		TRACE("reCode:%s",pCode); 
+		if(pCode[0] == '0') 
 		{
-			return 1;
+			APP_ShowTradeOK("交班成功");
+			g_ColData.recordId[0]='\0';
+			APP_WaitUiEvent(5*1000);
 		}
-	}
+		else 
+		{
+			PE_ShowfailMsg(pCode);
+		} 
+	}while(0);
+	DataFree();
+	Tcp_Close(NULL);
+	return 0;	
+}
 
+
+int ShiftMenu(char* pTitle)
+{
+	CMenuItemStru MenuStruPar[]=
+	{
+		"交班统计",		shiftStatV2,
+		"确认交班",		shiftConfirm,
+		"查看交班记录",	shiftRecordV2,
+	};
+	APP_CreateNewMenuByStruct(pTitle,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
+	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"shift.clz");
 	return 0;
 }
-
-/**
- * <获取交易类型名称>
- */	
-void GetTradeTypeName(char type, char* trade_type)
-{
-	switch(type)
-	{
-		case 'W':
-			API_strcpy(trade_type, STR_WECHAT);
-			break;
-		case 'A':
-			API_strcpy(trade_type, STR_ALIPAY);
-			break;
-		case 'J':
-			API_strcpy(trade_type, STR_JDPAY);
-			break;
-		case 'Q':
-			API_strcpy(trade_type, STR_QQ);
-			break;
-		case 'S':
-			API_strcpy(trade_type, STR_SHIMING);
-			break;
-		case 'U':
-			API_strcpy(trade_type, STR_UNIONPAY);
-			break;
-		case 'B':
-			API_strcpy(trade_type, STR_BESTPAY);
-			break;
-	}
-}
-
-
-/**
- * <交易成功提示>
- *
- */	
-void ShowSucceedTrade(void)
-{
-	char trade_type[32+1] = {0};
-	char *ptrade_type;
-
-	ptrade_type = PE_GetRecvIdPar("trade_type");
-	if(ptrade_type == NULL)
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_DATA_FORMAT_ERR,10*1000);
-		return;
-	}
-
-	g_ColData.pay_type = (~0x20) & ptrade_type[4];
-	GetTradeTypeName(g_ColData.pay_type, trade_type);
-	TRACE("ShowSucceedTrade = [%s]", trade_type);
-	SuccessTradeProcess(trade_type);
-}
-
-/**
- * <显示订单查询结果>
- * 
- * @date  201806014
- */
-void ShowQuerryResult( void )
-{
-	if(PE_CheckRecvIdPar("result_code", "0") != 0)
-	{
-		ShowReturnMessage();
-		return;
-	}
-
-	if(PE_CheckRecvIdPar("trade_state", "SUCCESS") == 0)
-	{
-		ShowSucceedTrade();
-		return;
-	}
-	ShowReturnMessage();
-}
-
-/*
-void ShowRefundOrder(void)
-{
-	// 显示明细
-	char time[12]={0};
-	char Date[12]={0};
-	char *pTime_end;
-	char *pTrade_type;
-	char *pTotal_fee,*pCash_fee;
-	char *pTransaction_id;
-	char trade_type[32];
-
-	pTrade_type=PE_GetRecvIdPar("trade_type");
-	if(pTrade_type==NULL)
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_DATA_FORMAT_ERR,10*1000);
-		return;
-	}
-	g_ColData.pay_type = (~0x20)&pTrade_type[4];
-	pTransaction_id    = PE_GetRecvIdPar("transaction_id");  //小写转大写
-	pTotal_fee         = PE_GetRecvIdPar("total_fee");
-	pCash_fee		   = PE_GetRecvIdPar("total_fee");
-	pTime_end          = PE_GetRecvIdPar("time_end");
-
-	//时间格式：20180423162735
-	API_memcpy(Date  ,pTime_end  ,4);		Date[4]='-';
-	API_memcpy(Date+5,pTime_end+4,2);		Date[7]='-';
-	API_memcpy(Date+8,pTime_end+6,2);		Date[10]='\0';
-	API_memcpy(time  ,pTime_end+8,2);		time[2]=':';
-	API_memcpy(time+3,pTime_end+10,2);		time[5]=':';
-	API_memcpy(time+6,pTime_end+12,2);		time[8]='\0';
-
-	GetTradeTypeName(g_ColData.pay_type, trade_type);
-	APP_ShowEnquiriesMsg(pTotal_fee, trade_type, Date, time, pTransaction_id);
-}
-*/
-/**
- * <查询订单结果显示>
- *
- * @return  
- */	
-void ShowOrderInfo(void)
-{	
-	char *ptrade_state = NULL;
-
-	if(0==IsTradeSucceed())
-	{
-		// 显示明细
-		if(NULL != (ptrade_state = PE_GetRecvIdPar("trade_state")))// 交易的状态
-		{	
-			if(API_memcmp(ptrade_state, "SUCCESS", 6)==0)
-			{
-				// 显示明细
-				ShowOrderDetails();
-				return;
-			}
-			else if(API_memcmp(ptrade_state, "REFUND", 6)==0)
-			{
-				APP_ShowTradeMsg(STR_ORDER_RERUNDED,10*1000);
-				//APP_ShowMsg(STR_MESSAGE ,STR_ORDER_RERUND,10*1000); 
-				return;
-			}
-		}
-	}
-
-	ShowReturnMessage();
-	return;
-}
-
-
-/**
- * <订单明细显示>
- */	
-void ShowOrderDetails(void)
-{
-	// 显示明细
-	char time[12]={0};
-	char Date[12]={0};
-	char *pTime_end;
-	char *pTrade_type;
-	char *pTotal_fee;
-	char *pTransaction_id;
-	char trade_type[32];
-
-	pTrade_type=PE_GetRecvIdPar("trade_type");
-	if(pTrade_type==NULL)
-	{
-		APP_ShowMsg(STR_MESSAGE, STR_DATA_FORMAT_ERR,10*1000);
-		return;
-	}
-	g_ColData.pay_type = (~0x20)&pTrade_type[4];
-	pTransaction_id    = PE_GetRecvIdPar("transaction_id");  //小写转大写
-	pTotal_fee         = PE_GetRecvIdPar("total_fee");
-	pTime_end          = PE_GetRecvIdPar("time_end");
-
-	//时间格式：20180423162735
-	API_memcpy(Date  ,pTime_end  ,4);		Date[4]='-';
-	API_memcpy(Date+5,pTime_end+4,2);		Date[7]='-';
-	API_memcpy(Date+8,pTime_end+6,2);		Date[10]='\0';
-	API_memcpy(time  ,pTime_end+8,2);		time[2]=':';
-	API_memcpy(time+3,pTime_end+10,2);		time[5]=':';
-	API_memcpy(time+6,pTime_end+12,2);		time[8]='\0';
-
-	GetTradeTypeName(g_ColData.pay_type, trade_type);
-	APP_ShowEnquiriesMsg(pTotal_fee, trade_type, Date, time, pTransaction_id);
-}
-
-
-/**
- * <显示交易提示信息>
- */	
-int ShowReturnMessage(void)
-{
-	char msg[128];
-	char *pstatus;
-	char *pmessage;
-	char *perr_msg;
-	char *presult_code;
-	char *ptrade_state_desc;
-	int len;
-
-	API_memset(msg, 0, sizeof(msg));
-
-	// 通讯失败, 提示message消息
-	pstatus  = PE_GetRecvIdPar("status");
-	pmessage = PE_GetRecvIdPar("message");
-	if(pstatus)
-	{
-		if (0 != API_strcmp(pstatus, "0"))
-		{
-			API_sprintf(msg, "返回状态码[%s]\n", pstatus);
-			len = API_strlen(msg);
-			if ( pmessage )
-				API_Utf8ToGbk(msg + len, sizeof(msg)-len, pmessage);
-			return APP_ShowTradeMsg(msg,10*1000);
-			//return APP_ShowMsg(STR_MESSAGE, msg,10*1000);
-		}
-	}
-
-	// 交易错误提示
-	presult_code = PE_GetRecvIdPar("result_code");
-	perr_msg     = PE_GetRecvIdPar("err_msg");
-	if(presult_code)
-	{
-		API_sprintf(msg,"%s[ %s ]\n",STR_RUTURN_CODE, presult_code);
-	}
-	if(perr_msg)
-	{
-		len = API_strlen(msg);
-		API_Utf8ToGbk(msg+len, sizeof(msg)-len, perr_msg);
-	}
-	else 
-	{
-		ptrade_state_desc = PE_GetRecvIdPar("trade_state_desc");
-		if (ptrade_state_desc)
-		{
-			len = API_strlen(msg);
-			API_Utf8ToGbk(msg+len, sizeof(msg)-len, ptrade_state_desc);
-		}
-	}
-	return APP_ShowTradeMsg(msg,20*1000);
-	//return APP_ShowMsg(STR_MESSAGE, msg,10*1000); 
-}
-
 
 

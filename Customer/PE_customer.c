@@ -1,156 +1,157 @@
 #include "communal.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-const UI_DisplayTheme UI_WftTheme=
-{
-	"press[0] next page",
-	"press[8] Prev page",
-	"page: [8]↑, [0]↓",
-	
-	"Small_f.clz",
-	14,
-	13,
-};
 
-//=================终端参数管理========================
 TERM_PAR    Term_Par;
+//dfJsonTable *pTrandMsg=NULL;
 
 void TermParSetDefault(void)
 {
 	CLEAR(Term_Par);
-	API_strcpy(Term_Par.ServerIp,"113.105.146.93");
-	API_strcpy(Term_Par.ServerPort,"8888");
-	API_strcpy(Term_Par.Apn,"CMNET");
-	API_strcpy(Term_Par.password, "888888");
-	Term_Par.volume = 7;
 
-	#ifdef HARD_WIFI
-	Term_Par.WifiOpen[0]=1;
-	#endif
-	API_strcpy(Term_Par.CustVer,  CustomerVersion);
+	API_strcpy(Term_Par.developerId,"100001");
+	API_strcpy(Term_Par.terminalType,"1");
 
-	// 主控默认设置为中文
-	API_SetLanguage(_LANG_ID_);
-	// 清流水
-	ClearTradeRecord();
+	API_strcpy(Term_Par.shopId,"488");
+	API_strcpy(Term_Par.terminalType,"1");
+	
+	//API_strcpy(Term_Par.ServerIp,"www.uutianfu.com");
+	//API_strcpy(Term_Par.ServerPort,"443");
+	API_strcpy(Term_Par.CustVer,CustomerVersion);
 }
 
-// 客户区域进入函数
 void MachDatainit(void)
 {
+	int ret;
 	CLEAR(g_ColData);
-	API_strcpy(g_ColData.mch_id,		Term_Par.mch_id);
-	API_strcpy(g_ColData.key,			Term_Par.mch_key);
-	API_strcpy(g_ColData.op_shop_id,	Term_Par.op_shop_id);
-	API_strcpy(g_ColData.op_user_id,	Term_Par.op_user_id);
+	API_SetLanguage(_LANG_ID_);
+	//pSdkFun->sdk->language(1);// 语言设置 0 英文，1 中文
+	ret=APP_GetHardMsg(TYPE_TERM_HARD_SN,g_ColData.sn,sizeof(g_ColData.sn));
+	if(ret<0)
+	{
+		APP_ShowMsg("警告","终端不可用，请做终端序列号申请",3000);
+		return ;
+	}
+	API_strcpy(g_ColData.developerId,DEVELOPER_ID);//Term_Par.developerId);
+	API_strcpy(g_ColData.signkey,TM_SIGNKEY);		//Term_Par.developerId);
+	API_strcpy(g_ColData.merchantId,Term_Par.userCode[0]);
+	API_strcpy(g_ColData.merchantSecretKey,Term_Par.merchantSecretKey);
+	API_strcpy(g_ColData.shopId,Term_Par.shopId);
+	//API_strcpy(g_ColData.userCode,Term_Par.userCode[0]);
+	API_strcpy(g_ColData.terminalType,Term_Par.terminalType);
 
-//	API_strcpy(g_ColData.merchantId, "181510000316");
-//	API_strcpy(g_ColData.keyFPS, "06221c2e1e44f4528b9668efb9f29d1d");
-	API_strcpy(g_ColData.merchantId,g_ColData.mch_id);
-	API_strcpy(g_ColData.keyFPS, g_ColData.key);
+	API_strcpy(g_ColData.terminalType,"2");
+	API_strcpy(g_ColData.userCode,"K21234567890");
+	API_strcpy(g_ColData.returnContent,"2");
 
-	AudioSetVolume(Term_Par.volume);
-	InitElementValue();
-	GetTermSN();
-	UI_LoadTheme(&UI_WftTheme);
+	//======导入交易地址=============
+	Tcp_LoadMsg(HTTP_TRADE_ADDERR,HTTP_TRADE_PORT);
+}
+
+
+int ScanMerchantInfo(char *title)
+{
+    char OutCode[128]={0};
+    char shopId[32];
+    int  ret,IndexId;
+	API_GUI_CreateWindow(title,NULL,NULL,0);
+	API_GUI_Info(NULL,TEXT_ALIGN_LEFT|TEXT_VALIGN_TOP|TEXT_EXSTYLE_UNDERLINE,"请对准品牌信息码");
+	API_GUI_Info(NULL,TEXT_ALIGN_RIGHT|TEXT_VALIGN_BOTTOM|TEXT_EXSTYLE_OVERLINE,"按[取消]键退出");
+	API_GUI_Show();
+    ret=APP_OnlyCamScan(0,20,50,OutCode,30*1000);
+    if(ret<0) return 1;
+    //------------取ID-----------------
+    for(IndexId=0;IndexId<ret;IndexId++)
+    {
+        if(OutCode[IndexId] <= ' ') break;
+    }
+    if(IndexId<2 || IndexId>16)
+    {
+        APP_ShowMsg(title,"品牌id",5000);
+        return -1;
+    }
+    API_memcpy(shopId,OutCode,IndexId);
+    shopId[IndexId]='\0';
+
+    while(OutCode[IndexId] <= ' ') IndexId++;   //过滤空格获'\'
+    //------------取KEY-----------------
+	while(OutCode[ret] <= ' ') ret--;	//过滤后面的
+	ret -= IndexId;
+	if(ret >= sizeof(Term_Par.merchantSecretKey)) 
+		ret = sizeof(Term_Par.merchantSecretKey)-1;
+	OutCode[IndexId+ret]='\0';
+    if(ret < 8)
+    {
+        APP_ShowMsg(title,"密钥长度错",5000);
+        return -2;
+    }
+    API_strcpy(Term_Par.merchantId, shopId);
+    API_strcpy(Term_Par.merchantSecretKey, OutCode+IndexId);
+
+    //Par_Set(Term_Par.merchantId, sizeof(Term_Par.merchantId));
+    //Par_Set(Term_Par.signkey, sizeof(Term_Par.signkey));
+	Par_SaveAll();
+	API_strcpy(g_ColData.shopId,Term_Par.shopId);
+	API_sprintf(OutCode,"导入成功\n\n品牌id:\n%s\n品牌密钥 :\n%s",Term_Par.merchantId,Term_Par.merchantSecretKey);
+    return APP_ShowInfo("品牌信息",OutCode,10000);
 }
 
 
 
-int  SoftInfo(char*  ptitle)
+
+int SoftInfo(char*  ptitle)
 {
-	char Msg[256]={0};
-	API_strcat(Msg, STR_TERM_MODEL);
-	API_strcat(Msg, ": ");
-	API_strcat(Msg, TermModel);
+    char Msg[128]={0};
+	API_strcat(Msg,CustomerVersion);
 	API_strcat(Msg,"\n");
-
-	API_strcat(Msg, STR_VERSION);
-	API_strcat(Msg, ": ");
-	API_strcat(Msg, Version);
+    API_strcat(Msg,VersionDate);
 	API_strcat(Msg,"\n");
-
-	API_strcat(Msg, STR_RELEASE_TIME);
-	API_strcat(Msg, ": ");
-	API_strcat(Msg, ReleaseTime);
+    API_strcat(Msg,TermModel);
 	API_strcat(Msg,"\n");
-
-	API_strcat(Msg, STR_TERM_CHANNEL);
-	API_strcat(Msg, ": ");
-	API_strcat(Msg, STR_CHANNEL_NAME);
-	API_strcat(Msg,"\n");
-
-	API_strcat(Msg,"SN: ");
-	APP_GetHardMsg(TYPE_TERM_HARD_SN, g_ColData.term_sn, sizeof(g_ColData.term_sn));
-	API_strcat(Msg,g_ColData.term_sn);
-	API_GUI_CreateWindow(STR_DEVICE_INFORMATION,NULL,NULL,0);
+    API_strcat(Msg,Version);
+	API_strcat(Msg,"\nSN:");
+	API_strcat(Msg,Term_Par.shopId);
+	API_GUI_CreateWindow("软件版本",NULL,NULL,0);
 	API_GUI_Info(NULL,TEXT_ALIGN_CENTER|TEXT_VALIGN_TOP,Msg);
+	API_GUI_Info(NULL,TEXT_ALIGN_RIGHT|TEXT_VALIGN_BOTTOM,"按[确认]键检测更新");
 	API_GUI_Show();
-	APP_WaitUiEvent(5000);
-
+	if(EVENT_OK==APP_WaitUiEvent(30*1000))
+	{
+		// APP_ShowMsg("提示","正在检测版本...",1);
+		//if(0==pSdkFun->sdk->tmsSyn("版本检测"))
+		  //   APP_ShowMsg("提示","无版本更新",3000);
+	}
 	return 0;
 }
 
-//===================特殊菜单=================================================
-//功能:   夸平台二维码收款交易菜单
-//输入数据:pTitle 标题，tNum菜单总项数，pMenuAll菜单显示与功能
-//输出数据:RET_OK创建成功，RET_ERR 创建失败
-//---------------------------------------------------------------
-/*
-int PE_TradeQrCodeMenuProcess(char *pTitle,int tNum,CMenuItemStru *pMenuAll,int TimeOutMs)
-{
-	int ret;
-	u32 Event;
 
-	APP_ShowPayMeth(pTitle);
-	while(1)
-	{
-		Event=API_WaitEvent(TimeOutMs,EVENT_UI,EVENT_KEY,EVENT_NONE);
-		if(Event&EVENT_CANCEL)
-		{
-			ret=OPER_RET;
-			break;
-		}
-		if(Event&EVENT_KEY)
-		{
-			u8 KeyVal;
-			KeyVal=Event&EVENT_INDEX;
-			if(KeyVal>=K_1 && KeyVal<=K_8)
-			{
-				KeyVal -= K_1;
-				if(KeyVal < tNum)
-				{
-					ret=(*pMenuAll[KeyVal].pFunMenu)(pMenuAll[KeyVal].pText);
-					break;
-				}
-			}
-		}
-		else if(Event&EVENT_TIMEOUT)
-		{
-			ret=OPER_TIMEOUT;
-			break;
-		}
-	}
-	return ret;
-}
-*/
-int APP_QRMenu(char* title)
+int APP_WIFIFunction(char* title)
 {
-	int ret;
 	CMenuItemStru MenuStruPar[]=
 	{
-		STR_MENU_ALIPAY,	QrTypeZFB,
-		STR_MENU_WECHAT,	QrTypeWX,
-		STR_MENU_UNIONPAY,	QrTypeUN,
-		STR_MENU_FPS,		QrTypeFPS,		
+		"WIFI开关",					APP_WIFI_EN,
+		"设置WIFI密码",				APP_WIFI_SetKey,
 	};
-	CLEAR(g_ColData.total_fee);
-	ret=APP_EditSum(title,'D',g_ColData.total_fee,30*1000);
-	if(ret <= 0) return ret;
-	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
-	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"PayMeth.clz");
+	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
+}
+
+
+int SetUserID(char* title)
+{
+	if(APP_InputAbc(title,"设置操作员",  STR_PRESS_NUBER_KEYS_ENTER, Term_Par.userCode[0],0, sizeof(Term_Par.userCode[0])-1)==0)
+	{
+		API_strcpy(g_ColData.userCode, Term_Par.userCode[0]);
+        Par_Set(Term_Par.userCode[0], sizeof(Term_Par.userCode[0]));
+	}
+	return 0;
+}
+
+int SetShopID(char* title)
+{
+	if(APP_InputAbc(title,"请输入门店编号",  STR_PRESS_NUBER_KEYS_ENTER, Term_Par.shopId,0, sizeof(Term_Par.shopId)-1)==0)
+	{
+		API_strcpy(g_ColData.shopId, Term_Par.shopId);
+        Par_Set(Term_Par.shopId, sizeof(Term_Par.shopId));
+	}
 	return 0;
 }
 
@@ -159,108 +160,45 @@ int APP_TermMenu(char* title)
 {
 	CMenuItemStru MenuStruPar[]=
 	{
-		STR_MERCHANT_ID_SETTINGS,				SetMerchant_ID,
-		STR_MERCHANT_KEY_SETTINGS,				InputMerchantKey,
-		STR_SCAN_QRCODE_IMPORT_MERCHANT_INFO,	ScanMerchantInfo,
-		STR_SET_SHOP_ID,						SetShopID,
-		STR_SET_USER_ID,						SetUserID,
-		#ifdef HARD_WIFI
-		WIFI_SWITCH,							APP_WIFI_EN,
-		WIFI_PASSWORD,							APP_WIFI_SetKey,
-		#endif
-		STR_DEVICE_INFORMATION,					SoftInfo,
+		"扫码导入品牌信息",		ScanMerchantInfo,
+		"设置门店编号",			SetShopID,
+		"设置店员号",			SetUserID,
+		"WIFI功能",				APP_WIFIFunction,
+		"设备信息",				SoftInfo,
+		"检查更新",				pSdkFun->app->NetInstallAPP,
 	};
 	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
 }
 
-int OrderQueryMenu(char* title)
-{
-	CMenuItemStru MenuItems[] = {
-		ORDER_QUERY, 			QueryFlow,
-		ORDER_FPS_QUERY,		FPS_QueryFlow,
-		ORDER_QUERY_REFUND,		QueryRefundResult,
-		ORDER_RECORD,			Enquiries,
-	};
-	if(0 != CheckParamPreFlow())
-	{
-		return -1;
-	}
-	APP_CreateNewMenuByStruct(title, sizeof(MenuItems)/sizeof(CMenuItemStru), MenuItems, 30*1000);
-	//APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,Enquiries,ORDER_RECORD);
-	return APP_ShowMenuProsse();
-}
+extern int TEST_JSON(char *pTitle);
 
 int APP_TradeMainMenu(char* title)
 {
 	CMenuItemStru MenuStruPar[]=
 	{
-		SCAVENGING_RECEIPT,		SweepFlow,
-		QRCODE_RECEIPT,			APP_QRMenu,
-		ORDER_REFUND,			RefundFlow,
-		ORDER_QUERY,			OrderQueryMenu,
+		"收款",			MicroPay,
+		"查询",			OrderQuery,
+		"退款",			RefundFlow,
+		"核销",			ConsumeCard,
+		"交班",			ShiftMenu,
+	//	"JSON测试", 			TEST_JSON,
 	};
-	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,30*1000);
-	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"PayCont.clz");
-	APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,(void*)APP_TermMenu,STR_PARAM_SETTINGS);
+	APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);//30*1000
+	APP_AddCurrentMenuOtherFun(MENU_BACK_MAP,NULL,"taimi.clz");
+	APP_AddCurrentMenuOtherFun(MENU_KEY_FUN,(void*)APP_TermMenu,"终端管理");
 	return 0;
 }
 
 
-int MerchantInfoMenu(char* title)
-{
-	CMenuItemStru MenuStruPar[]=
-	{
-		STR_SCAN_QRCODE_IMPORT_MERCHANT_INFO,	ScanMerchantInfo,
-//		STR_SCAN_QRCODE_IMPORT_FPS_ID,			ScanFPS_MerchantInfo,
-		STR_MERCHANT_ID_SETTINGS,				SetMerchant_ID,
-		STR_MERCHANT_KEY_SETTINGS,				InputMerchantKey,
-		STR_SET_SHOP_ID,						SetShopID,
-		STR_SET_USER_ID,						SetUserID,
-	};
-	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);
-}	
-
-int PE_wifi_FunSet(char* title)
-{
-	CMenuItemStru MenuStruPar[]=
-	{
-		WIFI_SWITCH,							APP_WIFI_EN,
-		WIFI_PASSWORD,							APP_WIFI_SetKey,
-	};
-	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);
-}	
-
 int customer_MainMenu(char* title)
-{
-	CMenuItemStru MenuStruPar[]=
-	{
-		STR_MERCHANT_INFO,						MerchantInfoMenu,
-		WIFI_FUNTION,							PE_wifi_FunSet,
-		#ifdef DOMESTIC_BANK_VERION
-		STR_SET_VOLUME,							Terminal_SetVolume,
-		#endif
-		STR_SET_ADMIN_PASSWORD,					SetRefundPwd,
-		STR_DEVICE_INFORMATION,					SoftInfo,
-	};
-	return APP_CreateNewMenuByStruct(title,sizeof(MenuStruPar)/sizeof(CMenuItemStru),MenuStruPar,-1);
-}
-
-
-void customer_main(unsigned long argc,void * lpThreadParameter)
 {
 	// 关闭公共区自动提示
 	TCP_SetInterNotDisplay(TRUE);	
-
-	for(;;)
+	UI_SetMenuItem(5);
+	//for(;;)
 	{
-		if(0 > SweepFlow(NULL))
-		{
-			APP_TradeMainMenu(STR_TRADE_MENU);
-		}
+		APP_TradeMainMenu(title);
+		if(EVENT_QUIT&APP_ShowMenuProsse()) return EVENT_QUIT;
 	}
+	return 0;
 }
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-

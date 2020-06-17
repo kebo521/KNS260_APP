@@ -35,7 +35,7 @@ void UI_DisplayInit(void)
 //=========设置菜单界面显示多少行菜单项=================
 void UI_SetMenuItem(int num)
 {
-	pGuiFun->LoadWindow(pGuiFun->GetWindow(),num);
+	pGuiFun->LoadWindow(pGuiFun->GetWindow(NULL),num);
 }
 //=====================区域图片备份======================================
 RECTL tBitMapRect;
@@ -369,7 +369,7 @@ void UI_ShowParMiddleSlide(u8 par,int ratio)
 	int ret;
 	char sbuff[4];
 	LPGuiWindow pWindow;
-	pWindow=pGuiFun->GetWindow();
+	pWindow=pGuiFun->GetWindow(NULL);
 	pUiFun->ShowParMiddleSlide(pWindow,ratio);
 
 	ret=sprintf(sbuff,"%d",par);
