@@ -48,6 +48,9 @@ extern int OpenAPN(char* pTitle);
 extern  int Tcp_Link(char* pTitle);
 extern int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull);
 extern int Tcp_Close(char* pTitle);
+extern void Tcp_SetLinkTimeMs(int ConnetTimeoutMs);
+extern int Tcp_PeekLink(void);
+
 extern void Tcp_LoadMsg(const char* pHttpAdderr,u16 port);
 
 
@@ -63,6 +66,7 @@ typedef struct
 	int (*GetLocalIP)(char*);	//这个功能要在Connect 之后使用，返回0成功
 
 	int(*GetNetMsg)(int,char*,int);	//获得NET模块信息 type(APP_MSG_TYPE),pOut,outSize
+	void (*SetCntTimeout)(int);	//(int ConnetTimeoutMs) default 15*1000
 }API_NetWork_Def;
 
 #endif

@@ -279,6 +279,7 @@ int APP_ShowTradeMsg(char *pShowMsg,int tTimeOutMS)
 		UI_DrawRectString(&Rect,pShowMsg);
 	}
 	API_GUI_Show();
+	if(tTimeOutMS == 0) return 0;
 	return APP_WaitUiEvent(tTimeOutMS);
 }
 
@@ -502,7 +503,13 @@ int APP_EditSum(char* pTitle,char TitleFlag,char* pOutStr,int timeOutMs)
 			if(ret>7)
 				APP_HitMsg(STR_EDIT_AMOUNT_INVALID,1500);
 			else if(ret >= 1)
-				return ret;
+			{
+				if(API_atoi(pOutStr) > 9999999)
+				{
+					APP_HitMsg("½ð¶î³¬ÏÞ",1500);
+				}
+				else return ret;
+			}
 			else
 				APP_HitMsg(STR_EDIT_AMOUNT_NULL,1500);
 			API_GUI_InputEdit(pOutStr,7,0,UI_EditShowMoney);

@@ -302,3 +302,10 @@ int APP_WIFI_EN(char* pTitle)
 	return 0;
 }
 
+
+void APP_SetConnetTimeout(int ConnetTimeoutMs)
+{
+	pSdkFun->wifi->SetConnetTimeout(ConnetTimeoutMs);
+}
+
+

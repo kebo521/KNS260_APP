@@ -38,7 +38,7 @@ int APP_Network_Disconnect(int timeOutMs)
 }
 
 
-static NET_ADDR_DATA TcpSaveFlag={0};
+static NET_ADDR_DATA TcpSaveFlag={15*1000,{0}};
 
 //====内部信息显示控制，默认为FALSE 有显示,uDisplay设成TRUE不显示===
 void TCP_SetInterNotDisplay(BOOL uDisplay)
@@ -60,13 +60,13 @@ int Tcp_Link(char* pTitle)
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowTradeFA(STR_PLEASE_CHARGE,3000);
-		return OPER_ERR;
+		return ret;
 	}
 	else if(!(ret&(NET_WLAN_CntHost|STATE_NET_CntPDP)))
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
-		return OPER_ERR;
+		return ret;
 	}
 	if(!TcpSaveFlag.NotDisplay) 
 		APP_ShowWaitFor(NULL);//STR_NET_LINK_WLAN
@@ -75,6 +75,7 @@ int Tcp_Link(char* pTitle)
 		TcpSaveFlag.port = HTTP_TRADE_PORT;
 		TcpSaveFlag.ENssL = Conv_HttpGetName(TcpSaveFlag.sHost,HTTP_TRADE_ADDERR);
 	}
+	pSdkFun->net->SetCntTimeout(15*1000);
 	ret=pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
 	//--------------电量低限制交易--------------------------
 	if(ret < 0)
@@ -110,6 +111,38 @@ int Tcp_Close(char* pTitle)
 {
 	return pSdkFun->net->Disconnect(0);
 }
+
+
+void Tcp_SetLinkTimeMs(int ConnetTimeoutMs)
+{
+	pSdkFun->net->SetCntTimeout(ConnetTimeoutMs);
+}
+
+int Tcp_PeekLink(void)
+{
+	int ret;
+	ret=pSdkFun->net->GetNetState();
+	if(ret == OPER_LOW_VOLTAGE)
+	{
+		if(!TcpSaveFlag.NotDisplay) 
+			APP_ShowTradeFA(STR_PLEASE_CHARGE,3000);
+		return ret;
+	}
+	else if(!(ret&(NET_WLAN_CntHost|STATE_NET_CntPDP)))
+	{
+		if(!TcpSaveFlag.NotDisplay) 
+			APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
+		return ret;
+	}
+	pSdkFun->net->SetCntTimeout(0);
+	if(TcpSaveFlag.port == 0)
+	{
+		TcpSaveFlag.port = HTTP_TRADE_PORT;
+		TcpSaveFlag.ENssL = Conv_HttpGetName(TcpSaveFlag.sHost,HTTP_TRADE_ADDERR);
+	}
+	return pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
+}
+
 
 
 void Tcp_LoadMsg(const char* pHttpAdderr,u16 port)

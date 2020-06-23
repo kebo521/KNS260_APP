@@ -107,7 +107,8 @@ typedef struct
 	int (*AutoRun)(void);
 
 	int (*ConfigMode)(int);	//配网模式
-	int(*GetNetMsg)(int,char*,int);	//获得wifi模块信息 type(WIFI_MSG_TYPE),pOut,outSize
+	int (*GetNetMsg)(int,char*,int);	//获得wifi模块信息 type(WIFI_MSG_TYPE),pOut,outSize
+	void (*SetConnetTimeout)(int);	//(int ConnetTimeoutMs) default 15*1000
 }API_WIFI_Def;
 
 #endif
