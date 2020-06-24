@@ -10,7 +10,7 @@ typedef struct
 {
 	char Mask[4]; 	// "GUI"
 	void (*LoadWindow)(LPGuiWindow,int);	//(GuiWindow *pWindow,int contLine)
-	LPGuiWindow (*GetWindow)(void);
+	LPGuiWindow (*GetWindow)(int*);		//(int* contLine)
 	void (*FillRect)(RECTL*,A_RGB);	//(RECTL *pRect,A_RGB Color)
 	void (*XorRect)(RECTL*,A_RGB);	//(RECTL *pRect,A_RGB Color)
 	void (*GetRectBuff)(RECTL*,A_RGB*);	//(RECTL *pRect,A_RGB *pRGB)

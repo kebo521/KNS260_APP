@@ -252,6 +252,52 @@ int APP_ShowTradeFA(char *pShowMsg,int tTimeOutMS)
 	return APP_WaitUiEvent(tTimeOutMS);
 }
 
+void APP_ShowTrade(const char *pfilePath,char *pDspMoney,char *pShowMsg)
+{
+	RECTL	Rect;
+	Rect.left	= SCREEN_APP_X;
+	Rect.top	= SCREEN_APP_Y;
+	Rect.width	= SCREEN_APP_W;
+	Rect.height = SCREEN_APP_H;
+	if(0 == UI_ShowPictureFile(&Rect,pfilePath))
+	{
+		if(pDspMoney)
+		{
+			Rect.left	= UI_EDIT_sMONEY_X;
+			Rect.top	= UI_EDIT_sMONEY_Y;
+			Rect.width	= UI_EDIT_sMONEY_W;
+			Rect.height = UI_EDIT_sMONEY_H;
+			UI_ShowSmallNum(&Rect,1,pDspMoney);
+		}
+		if(pShowMsg)
+		{
+			u16 width;
+			width=API_strlen(pShowMsg)*FONT_SIZE/2;
+			if(width < UI_TRADE_FA_MSG_W)
+			{
+				Rect.top	= UI_TRADE_FA_MSG_Y;
+				Rect.left	= UI_TRADE_FA_MSG_X+(UI_TRADE_FA_MSG_W-width)/2;
+				Rect.width	= width;
+				Rect.height = FONT_SIZE;
+			}
+			else 
+			{
+				Rect.top	= UI_TRADE_FA_MSG_Y;
+				Rect.left	= UI_TRADE_FA_MSG_X;
+				Rect.width	= UI_TRADE_FA_MSG_W;
+				Rect.height = UI_TRADE_FA_MSG_H;
+			}
+			UI_SetColorRGB565(RGB565_WITHE,RGB565_PARENT);
+			UI_DrawRectString(&Rect,pShowMsg);
+		}
+		API_GUI_Show();
+	}
+	else
+	{
+		APP_ShowSta(pShowMsg,pDspMoney);
+	}
+}
+
 void APP_ShowRefundsOK(char *pTradeMoney)
 {
 	UI_ShowBmpAndMoney("RetOK.clz",pTradeMoney);

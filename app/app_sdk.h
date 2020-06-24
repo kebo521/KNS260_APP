@@ -70,6 +70,7 @@ extern void APP_ShowWaitFor(char *pShowMsg);
 extern void APP_ShowWaitRef(char *pTradeMoney);
 extern void APP_ShowTradeOK(char *pTradeMoney);
 extern int APP_ShowTradeFA(char *pShowMsg,int tTimeOutMS);
+extern void APP_ShowTrade(const char *pfilePath,char *pDspMoney,char *pShowMsg);
 extern void APP_ShowRefundsOK(char *pTradeMoney);
 extern int APP_ShowTradeMsg(char *pShowMsg,int tTimeOutMS);
 extern void APP_ShowQRcodeDis(char *pQRcode,char *pTradeMoney);

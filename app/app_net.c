@@ -66,7 +66,7 @@ int Tcp_Link(char* pTitle)
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
-		return ret;
+		return OPER_OFFLINE;
 	}
 	if(!TcpSaveFlag.NotDisplay) 
 		APP_ShowWaitFor(NULL);//STR_NET_LINK_WLAN
@@ -88,22 +88,54 @@ int Tcp_Link(char* pTitle)
 int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull)
 {
 	int ret;
+	char *pRecvData;
 	ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
 	if(ret<0)
 	{
-		if(!TcpSaveFlag.NotDisplay)
-			APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
-		return OPER_SEND_ERR;
+		pSdkFun->net->Disconnect(2000);
+		pSdkFun->net->SetCntTimeout(15*1000);
+		pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
+		ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
+		if(ret<0)
+		{
+			if(ret == OPER_RET)
+				return OPER_RET;
+			if(!TcpSaveFlag.NotDisplay)
+				APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
+			return OPER_SEND_ERR;
+		}
 	}
-	ret=pSdkFun->net->Recv(PE_SendBuf,BufSize,30*1000,pCheckFull);
+	pRecvData = malloc(BufSize);
+	ret=pSdkFun->net->Recv(pRecvData,BufSize,30*1000,pCheckFull);
 	if(ret <= 0)
 	{
-		if(ret == OPER_RET)
-			return OPER_RET;
-		if(!TcpSaveFlag.NotDisplay)
-			APP_ShowNoSignel(STR_NET_FAIL_RECV,3000);
-		return OPER_RECV_ERR;
+		pSdkFun->net->Disconnect(2000);
+		pSdkFun->net->SetCntTimeout(15*1000);
+		pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
+		ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
+		if(ret<0)
+		{
+			free(pRecvData);
+			if(ret == OPER_RET)
+				return OPER_RET;
+			if(!TcpSaveFlag.NotDisplay)
+				APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
+			return OPER_SEND_ERR;
+		}
+		ret=pSdkFun->net->Recv(pRecvData,BufSize,30*1000,pCheckFull);
+		if(ret <= 0)
+		{
+			free(pRecvData);
+			if(ret == OPER_RET)
+				return OPER_RET;
+			if(!TcpSaveFlag.NotDisplay)
+				APP_ShowNoSignel(STR_NET_FAIL_RECV,3000);
+			return OPER_RECV_ERR;
+		}
 	}
+	memcpy(PE_SendBuf,pRecvData,ret);
+	PE_SendBuf[ret]='\0';
+	free(pRecvData);
 	//---------------------------------------------------------
 	return PE_CheckRecvData(PE_SendBuf,ret);
 }
@@ -126,13 +158,13 @@ int Tcp_PeekLink(void)
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowTradeFA(STR_PLEASE_CHARGE,3000);
-		return ret;
+		return OPER_LOW_VOLTAGE;
 	}
 	else if(!(ret&(NET_WLAN_CntHost|STATE_NET_CntPDP)))
 	{
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowNoSignel(STR_NET_NO_SERVICE,3000);
-		return ret;
+		return OPER_OFFLINE;
 	}
 	pSdkFun->net->SetCntTimeout(0);
 	if(TcpSaveFlag.port == 0)
