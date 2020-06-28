@@ -8,7 +8,7 @@
 
 typedef struct	
 {
-	char Mask[4]; 	// "GUI"
+	char Mask[4]; 	// "GUI" 
 	void (*LoadWindow)(LPGuiWindow,int);	//(GuiWindow *pWindow,int contLine)
 	LPGuiWindow (*GetWindow)(int*);		//(int* contLine)
 	void (*FillRect)(RECTL*,A_RGB);	//(RECTL *pRect,A_RGB Color)

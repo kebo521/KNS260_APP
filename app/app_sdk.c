@@ -439,7 +439,7 @@ int APP_ShowEnquiriesMsg(char *pTmoney,char* pTradeType,char* pDate,char* pTime,
 	return OPER_TIMEOUT;
 }
 
-//=======================扫码控制函数================================
+//========只做独立的扫描==不参与显示==flag:bit1功能键,Bit2数字键===============================
 int APP_OnlyCamScan(char flagKey,int MinLen,int MaxLen,char* pOutCode,int msTimeOut)
 {
 	return pSdkFun->app->OnlyCamScan(flagKey,MinLen,MaxLen,pOutCode,msTimeOut);
@@ -476,10 +476,7 @@ int APP_CamScan(char flagd,char* pHintOrTMoney,char *pOutCode,int MinLen,int Max
 	{
 		UI_ShowPictureFile(&Rect,"ScanIpt.clz");
 		Rect.top	= UI_SCAN_TEXT_Y;
-		if(flagd=='R')	// "订单退款"
-			flagKey	= 0x02;
-		else			// "交易查询"
-			flagKey	= 0x03;
+		flagKey	= 0x02;
 	}
 	else
 	{

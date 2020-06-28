@@ -106,6 +106,11 @@ int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull)
 		}
 	}
 	pRecvData = malloc(BufSize);
+	if(pRecvData == NULL)
+	{
+		APP_ShowNoSignel("ÉêÇëÄÚ´æÊ§°Ü",3000);
+		return OPER_HARD_Err;
+	}
 	ret=pSdkFun->net->Recv(pRecvData,BufSize,30*1000,pCheckFull);
 	if(ret <= 0)
 	{

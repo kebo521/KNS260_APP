@@ -656,6 +656,7 @@ sIdDataTable* Conv_SingleJSON_GetMsg(char *pIndata,char* pEnd)
 	if(cycle<1) return NULL;
 	//-----------申请对应空间----------------------
 	pIdData=(sIdDataTable*)malloc(sizeof(sIdDataTable)+(sizeof(sIdDataItem)*cycle)+count+1); //+1 = +'\0';
+	if(pIdData==NULL) return NULL;
 	//pIdData->pPrevious = NULL;
 	pIdData->sLen = count;
 	pIndata = (char*)&pIdData->Item[cycle]; //不改变原来数据，借用原来形参
@@ -867,6 +868,7 @@ int Conv_Sign_Check(sIdDataTable *pStart,const char* KeyName,char* KeyData)
 	sIdDataItem *pItem;
 	MaxNum=pStart->Total;
 	pMd5Data=(char*)malloc(pStart->sLen);
+	if(pMd5Data==NULL) return OPER_HARD_Err;
 	pGetStr=pMd5Data;
 	for(i=0;i<MaxNum;i++)
 	{
