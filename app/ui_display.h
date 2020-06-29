@@ -153,6 +153,7 @@ extern int UI_ShowPictureFile(RECTL *prclTrg,const char *pfilePath);
 
 extern void UI_DisplayBitMapGet(u16 x,u16 y,u16 w,u16 h);
 extern void UI_DisplayBitMapSet(void);
+extern void UI_DisplayBitMapEND(void);
 
 extern void UI_ShowBottomProgress(u8 ratio);
 extern void UI_ShowParMiddleSlide(u8 par,int ratio);

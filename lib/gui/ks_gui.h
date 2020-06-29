@@ -119,10 +119,6 @@ typedef void (*Fun_ShowNum)(u32,char*);
 
 //=================================================================================
 
-//extern void UI_DisplayBitMapGet(u16 x,u16 y,u16 w,u16 h);
-//extern void UI_DisplayBitMapSet(void);
-//extern void UI_DisplayBitMapEND(void);
-
 
 #endif
 

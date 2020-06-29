@@ -933,7 +933,7 @@ char* Conv_GetParFindID(sIdDataTable *pStart,char* pPostID)
 	return NULL;
 }
 
-#if(0)
+#if(1)
 //===多层JSON处理功能{"abb":"cdd","struct":{"abb":"cdd"}.....}===============
 //--注: pIndata不能是ROM空间，处理后会修改pIndata中的参数,
 //--    用完后需要Conv_JSON_free释放空间
@@ -997,6 +997,7 @@ dfJsonTable* Conv_JSON_GetMsg(char *pIndata,char* pEnd)
 	*pStrEnd = '\0';
 	//-----------申请对应空间----------------------
 	pCurr=(dfJsonTable*)malloc(sizeof(dfJsonTable)+(sizeof(dfJsonItem)*colonCount)); //+1 = +'\0';
+	if(pCurr==NULL) return NULL;
 	pCurr->pNext= NULL;
 	pCurr->sLen = pStrEnd-pIndata;
 	cycle=0;

@@ -38,7 +38,7 @@ int  Par_SaveAll(void)
 }
 
 //==========================交易记录==================================
-
+#if(0)
 //=====(TradeRecordItem结构与TRADE_RECORD_MAX 数量由客户区定义)===========
 typedef struct
 {
@@ -127,7 +127,13 @@ void ClearTradeRecord()
      	API_fremove(TransactionfilePath);
      } 
 }
+#else
+int ReadTradeRecordToFile(void)
+{
+	return 0;
+}
 
+#endif
 
 //===========恢复出厂设置========================
 int APP_ParFacInit(char* title)

@@ -58,8 +58,11 @@ void UI_DisplayBitMapSet(void)
 }
 void UI_DisplayBitMapEND(void)
 {
-	free(pBitMapBuff);
-	pBitMapBuff = NULL;
+	if(pBitMapBuff)
+	{
+		free(pBitMapBuff);
+		pBitMapBuff = NULL;
+	}
 }
 //================================»­¿ò=======================================================
 void UI_ShowColorRect(RECTL *pRect,int Width,A_RGB Color)
