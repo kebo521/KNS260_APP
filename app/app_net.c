@@ -80,67 +80,36 @@ int Tcp_Link(char* pTitle)
 	//--------------电量低限制交易--------------------------
 	if(ret < 0)
 	{
+		if(ret == OPER_RET)
+			return OPER_RET;
 		if(!TcpSaveFlag.NotDisplay) 
 			APP_ShowNoSignel(STR_NET_FAIL_LINK,3000);
+		return OPER_SEND_ERR;
 	}
 	return ret;
 }
 int  Tcp_SocketData(char* pTitle,CHECK_DATA_FULL pCheckFull)
 {
 	int ret;
-	char *pRecvData;
 	ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
 	if(ret<0)
 	{
-		pSdkFun->net->Disconnect(2000);
-		pSdkFun->net->SetCntTimeout(15*1000);
-		pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
-		ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
-		if(ret<0)
-		{
-			if(ret == OPER_RET)
-				return OPER_RET;
-			if(!TcpSaveFlag.NotDisplay)
-				APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
-			return OPER_SEND_ERR;
-		}
+		if(ret == OPER_RET)
+			return OPER_RET;
+		if(!TcpSaveFlag.NotDisplay)
+			APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
+		return OPER_SEND_ERR;
 	}
-	pRecvData = malloc(BufSize);
-	if(pRecvData == NULL)
-	{
-		APP_ShowNoSignel("申请内存失败",3000);
-		return OPER_HARD_Err;
-	}
-	ret=pSdkFun->net->Recv(pRecvData,BufSize,30*1000,pCheckFull);
+	ret=pSdkFun->net->Recv(PE_SendBuf,BufSize,30*1000,pCheckFull);
 	if(ret <= 0)
 	{
-		pSdkFun->net->Disconnect(2000);
-		pSdkFun->net->SetCntTimeout(15*1000);
-		pSdkFun->net->Connect(TcpSaveFlag.sHost,TcpSaveFlag.port,TcpSaveFlag.ENssL);
-		ret=pSdkFun->net->Send(PE_SendBuf,pFlow.pMsgLen);
-		if(ret<0)
-		{
-			free(pRecvData);
-			if(ret == OPER_RET)
-				return OPER_RET;
-			if(!TcpSaveFlag.NotDisplay)
-				APP_ShowNoSignel(STR_NET_FAIL_SEND,3000);
-			return OPER_SEND_ERR;
-		}
-		ret=pSdkFun->net->Recv(pRecvData,BufSize,30*1000,pCheckFull);
-		if(ret <= 0)
-		{
-			free(pRecvData);
-			if(ret == OPER_RET)
-				return OPER_RET;
-			if(!TcpSaveFlag.NotDisplay)
-				APP_ShowNoSignel(STR_NET_FAIL_RECV,3000);
-			return OPER_RECV_ERR;
-		}
+		//if(ret == OPER_RET)
+		//	return OPER_RET;
+		if(!TcpSaveFlag.NotDisplay)
+			APP_ShowNoSignel(STR_NET_FAIL_RECV,3000);
+		return OPER_RECV_ERR;
 	}
-	memcpy(PE_SendBuf,pRecvData,ret);
 	PE_SendBuf[ret]='\0';
-	free(pRecvData);
 	//---------------------------------------------------------
 	return PE_CheckRecvData(PE_SendBuf,ret);
 }
